@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>演習5：ブラインド SQLインジェクション</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ----- ヘッダー ----- */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            font-weight: normal;
+            color: #bdc3c7;
+            margin-top: 4px;
+        }           
+
+        /* ----- レイアウト ----- */
+        .container {
+            max-width: 1100px;
+            margin: 25px auto 40px;
+            padding: 0 15px;
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+            gap: 20px;
+        }
+
+        /* ----- カード ----- */
+        .card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #ecf0f1;
+            color: #555;
+            margin-right: 6px;
+        }
+
+        /* セクション */
+        .section-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            color: #34495e;
+        }
+
+        .section-body {
+            font-size: 13px;
+            color: #444;
+            line-height: 1.6;
+        }
+
+        .section-body ul {
+            padding-left: 18px;
+            margin: 4px 0 8px;
+        }
+
+        pre.code-block {
+            background: #f2f4f6;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-x: auto;
+        }
+
+        /* ヒント */
+        .hint-box {
+            background: #f9fbff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid #d6e4ff;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .hint-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .hint-title {
+            font-weight: bold;
+            font-size: 13px;
+            color: #2c3e50;
+        }
+
+        .hint-toggle {
+            font-size: 18px;
+        }
+
+        .hint-content {
+            margin-top: 6px;
+            display: none;
+        }
+
+        code {
+            background: #f2f4f6;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        pre {
+            background:#f2f4f6;
+            padding:8px 10px;
+            border-radius:6px;
+            font-size:12px;
+            overflow-x:auto;
+        }
+
+        /* フォーム */
+        .form-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: #34495e;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccd1d9;
+            font-size: 13px;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.12);
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .alert-info {
+            background: #ecf7ff;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 12px;
+            color: #2c3e50;
+            margin-top: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container { grid-template-columns: minmax(0, 1fr); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ヘッダー -->
+    <div class="header">
+        SQLi Learning
+        <div class="header-sub">演習メニュー &gt; ブラインド SQLインジェクション体験</div>
+    </div>
+
+    <div class="container">
+
+        <!-- 左：説明カード -->
+        <div class="card">
+            <div class="card-title">演習5：ブラインド SQLインジェクション攻撃を体験しよう</div>
+            <div class="card-subtitle">
+                <span class="badge">難易度：★★★（上級）</span>
+                <span class="badge">対象：True/False・レスポンス長・時間差</span>
+            </div>
+
+            <div class="section-title">1. 演習の目的</div>
+            <div class="section-body">
+                ブラインドSQLインジェクションは、  
+                <strong>画面にエラーも結果も表示されない場合でも成立する攻撃</strong> です。  
+                この演習では以下3種類のBlind SQLiを体験します：
+                <ul>
+                    <li>① True/False ベース</li>
+                    <li>② レスポンス長ベース</li>
+                    <li>③ 時間差（Time-based）ベース</li>
+                </ul>
+            </div>
+
+            <div class="section-title">2. 想定される脆弱な実装</div>
+            <div class="section-body">
+                ブラインドSQLiは、次のような「結果を画面に返さないAPI」で起こります：
+            <pre class="code-block">
+q = request.args.get("q", "")
+query = "SELECT * FROM users WHERE name = '" + q + "'"
+rows = cursor.fetchall()
+return "OK"
+            </pre>
+                「OK」しか返さないため、  
+                <strong>攻撃者は応答内容（または時間）から成功を推測します。</strong>
+            </div>
+
+            <div class="section-title">3. やってみよう</div>
+            <div class="section-body">
+                右側フォームに以下を入力して試してみてください：
+                <ul>
+                    <li>① True/False： <code>' OR 1=1 --</code></li>
+                    <li>② False： <code>' AND 1=0 --</code></li>
+                    <li>③ 時間差（SQLite/PG用）： <code>' OR CASE WHEN (1=1) THEN sleep(3) END --</code></li>
+                    <li>④ レスポンス長： <code>' UNION SELECT 'AAAAA...' --</code></li>
+                </ul>
+
+                応答の <strong>速度・長さ・挙動の違い</strong> を観察しましょう。
+            </div>
+
+            <!-- ヒント -->
+            <div class="hint-box">
+                <div class="hint-header" onclick="toggleHint()">
+                    <div class="hint-title">ヒントを見る（クリックで展開）</div>
+                    <div class="hint-toggle" id="hint-toggle-symbol">＋</div>
+                </div>
+                <div class="hint-content" id="hint-content">
+                    <p> Blind SQLi のポイント</p>
+                    <ul>
+                        <li>画面に結果が表示されなくても攻撃は成立する</li>
+                        <li>True/Falseで応答の違いを見ることで内部情報を推測する</li>
+                        <li>時間差は強力で、1文字ずつ抽出が可能</li>
+                        <li>脆弱APIは「情報の非表示＝安全」と誤解しがち</li>
+                    </ul>
+                    <p>ブラインドSQLiは自動化しやすいため、  
+                    実際の攻撃で最も利用される危険な手法です。</p>
+                </div>
+            </div>
+
+            <div class="section-title">4. 学習のポイント</div>
+            <div class="section-body">
+                <ul>
+                    <li>画面に情報が出ないから安全という考えは間違い</li>
+                    <li>応答時間や内容の微妙な差で内部情報を推測可能</li>
+                    <li>Prepared Statement / ORM を使うと防御できる</li>
+                    <li>ログ監視・レート制限も重要な対策となる</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 右：実際のフォーム -->
+        <div class="card">
+    <div class="card-title">ブラインド SQLi（演習用API）</div>
+    <div class="card-subtitle">
+        /blind に送らず、このページ内のみで動作します。
+    </div>
+
+    <!-- 🔽 ページ内完結フォームに変更 -->
+    <form onsubmit="return fakeBlind(event)">
+        <div class="form-group">
+            <label for="q">テスト入力（任意）</label>
+            <input type="text" id="q" name="q"
+                placeholder="例：' OR 1=1 -- , ' AND 1=0 -- , ' OR CASE WHEN (1=1) THEN sleep(3) END --" autocomplete="off">
+        </div>
+
+        <button type="submit" class="btn-primary">送信</button>
+
+        <!-- 🔽 結果表示領域 -->
+        <div id="blind-result" class="alert-info" style="display:none; margin-top:14px;"></div>
+    </form>
+</div>
+
+    </div>
+
+    <script>
+        function toggleHint() {
+            const content = document.getElementById("hint-content");
+            const symbol = document.getElementById("hint-toggle-symbol");
+            if (content.style.display === "block") {
+                content.style.display = "none";
+                symbol.textContent = "＋";
+            } else {
+                content.style.display = "block";
+                symbol.textContent = "－";
+            }
+        }
+
+        function fakeBlind(event) {
+    event.preventDefault();
+
+    const input = document.getElementById("q").value.trim();
+    const box = document.getElementById("blind-result");
+    box.style.display = "block";
+
+    const sql = `SELECT * FROM users WHERE name='${input}'`;
+
+    /* --- 判定パターン --- */
+    const patterns = {
+        true_based: /(or|OR)\s*1\s*=\s*1/,
+        false_based: /(and|AND)\s*1\s*=\s*0/,
+        time_based: /(sleep|pg_sleep|benchmark)/i,
+        length_based: /(UNION|union)\s+SELECT/i,
+    };
+
+    let message = "";
+
+    /* --- Time-based の疑似ディレイ  --- */
+    if (patterns.time_based.test(input)) {
+        fetch("/set_achievement/exercise5", { method: "POST" });
+        box.style.border = "2px solid #e67e22";
+        message = `
+            <strong style='color:#e67e22;'>⏳ Time-based Blind SQLi</strong><br>
+            応答が遅くなりました（疑似遅延 2秒）。<br><br>
+            疑似SQL：<br><code>${sql}</code>
+        `;
+
+        setTimeout(() => { box.innerHTML = message; }, 2000);
+
+        fetch("/set_achievement/exercise_blind", { method: "POST" });
+        return false;
+    }
+
+    /* --- True-based --- */
+    if (patterns.true_based.test(input)) {
+        fetch("/set_achievement/exercise5", { method: "POST" });
+        box.style.border = "2px solid #27ae60";
+        message = `
+            <strong style='color:#27ae60;'>✔ True/False ベース：True</strong><br>
+            条件が真となり、結果が取得されたと推測されます。<br><br>
+            疑似SQL：<br><code>${sql}</code>
+        `;
+        fetch("/set_achievement/exercise_blind", { method: "POST" });
+    }
+    /* --- False-based --- */
+    else if (patterns.false_based.test(input)) {
+        box.style.border = "2px solid #c0392b";
+        message = `
+            <strong style='color:#c0392b;'>✕ True/False ベース：False</strong><br>
+            条件が偽となり、結果は0件と推測されます。<br><br>
+            疑似SQL：<br><code>${sql}</code>
+        `;
+    }
+    /* --- レスポンス長ベース（UNION） --- */
+    else if (patterns.length_based.test(input)) {
+        fetch("/set_achievement/exercise5", { method: "POST" });
+        box.style.border = "2px solid #8e44ad";
+        message = `
+            <strong style='color:#8e44ad;'>📏 レスポンス長ベース Blind SQLi</strong><br>
+            UNION攻撃により返却データの長さが変わったと推測されます。<br><br>
+            疑似SQL：<br><code>${sql}</code>
+        `;
+        fetch("/set_achievement/exercise_blind", { method: "POST" });
+    }
+    /* --- 通常 --- */
+    else {
+        box.style.border = "2px solid #2980b9";
+        message = `
+            <strong style='color:#2980b9;'>✔ 正常なリクエスト</strong><br>
+            SQLインジェクションは成立しませんでした。<br><br>
+            疑似SQL：<br><code>${sql}</code>
+        `;
+    }
+
+    box.innerHTML = message;
+    return false;
+}
+    </script>
+
+<div style="text-align:center; margin-top: 20px;">
+    <a href="/home"
+       style="
+           display:inline-block;
+           background:#3498db;
+           color:white;
+           padding:10px 20px;
+           border-radius:6px;
+           text-decoration:none;
+           font-size:16px;
+           margin-bottom: 20px;
+       ">
+        ← ホームに戻る
+    </a>
+</div>
+
+</body>
+</html>

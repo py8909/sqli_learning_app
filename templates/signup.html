@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ユーザー登録</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+        }
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .wrapper {
+            display: flex;
+            justify-content: center;
+            padding-top: 80px;
+        }
+
+        .container {
+            width: 350px;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #bbb;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        button:hover {
+            background: #3498db;
+        }
+
+        .link {
+            text-align: center;
+            margin-top: 10px;
+        }
+        a {
+            color: #2980b9;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">SQLi Learning</div>
+
+    <div class="wrapper">
+        <div class="container">
+            <h2>ユーザー登録</h2>
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div style="color:red;">{{ messages[0] }}</div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                <input type="text" name="username" placeholder="ユーザー名" autocomplete="off">
+                <input type="password" name="password" placeholder="パスワード" autocomplete="off">
+                <button type="submit">登録する</button>
+            </form>
+
+            <div class="link">
+                <a href="/login"> ログイン画面に戻る</a>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

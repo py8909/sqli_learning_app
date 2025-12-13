@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>SQLi Learning</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ----- ヘッダー ----- */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .app-info {
+            display: none;
+            background: #ecf0f1;
+            padding: 15px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        /* ----- 左カラム（💡） ----- */
+        .left-column {
+            width: 120px;
+            padding: 20px 10px;
+            position: absolute;
+            left: 0;
+            top: 370px;
+        }
+
+        .left-tab {
+            padding: 6px 5px;
+            background: #9AA7B8;
+            cursor: pointer;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 20px;
+            width: 40px;
+            transition: 0.2s;
+            margin-bottom: 10px;
+        }
+
+        .left-tab:hover {
+            background: #B5C1D0;
+        }
+
+        /* ----- ログインフォーム中央配置 ----- */
+        .login-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 80px;
+        }
+
+        .container {
+            width: 350px;
+            padding: 25px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #bbb;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        button:hover { background: #3498db; }
+
+        /* --- 新規登録リンク --- */
+        .signup-link {
+            margin-top: 12px;
+            text-align: center;
+        }
+        .signup-link a {
+            color: #2980b9;
+            text-decoration: none;
+        }
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <!-- タイトルクリックで説明 -->
+    <div class="header" onclick="toggle('app-info')">
+        SQLi Learning
+    </div>
+
+    <div id="app-info" class="app-info">
+        <h3>🔍 このアプリについて</h3>
+        <p>
+            SQLインジェクション攻撃の原理・実験・安全な書き方まで学べる実習用アプリです
+        </p>
+    </div>
+
+    <!-- 中央ログインフォーム -->
+    <div class="login-wrapper">
+        <div class="container">
+            <h2>ログイン</h2>
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div style="color:red;">{{ messages[0] }}</div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                <input type="text" name="username" placeholder="ユーザー名" autocomplete="off">
+                <input type="password" name="password" placeholder="パスワード" autocomplete="off">
+                <button type="submit">ログイン</button>
+            </form>
+
+            <br>
+            <!-- 🔽 新規登録リンクを追加 -->
+            <p class="signup-link">
+                <a href="/signup">新規登録はこちら</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function toggle(id) {
+            const box = document.getElementById(id);
+            box.style.display = (box.style.display === "block") ? "none" : "block";
+        }
+    </script>
+
+</body>
+</html>
+
+
+
+
+

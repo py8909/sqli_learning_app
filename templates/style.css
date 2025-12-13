@@ -1,0 +1,24 @@
+/* 正解の選択肢（薄緑） */
+.option.correct-option {
+    background: #e6ffe6;
+    border-radius: 5px;
+}
+
+/* 誤答した選択肢（薄赤） */
+.option.incorrect-option {
+    background: #ffe6e6;
+    border-radius: 5px;
+}
+
+.back-home-btn {
+    display:inline-block;
+    background:#3498db;
+    color:white;
+    padding:10px 20px;
+    border-radius:6px;
+    text-decoration:none;
+    font-size:16px;
+}
+.back-home-btn:hover {
+    background:#5dade2;
+}

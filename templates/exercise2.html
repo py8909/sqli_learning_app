@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>演習2：検索フォーム SQLi</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ----- ヘッダー ----- */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            font-weight: normal;
+            color: #bdc3c7;
+            margin-top: 4px;
+        }
+
+        /* ----- 全体レイアウト ----- */
+        .container {
+            max-width: 1100px;
+            margin: 25px auto 40px;
+            padding: 0 15px;
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ----- カード共通 ----- */
+        .card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #ecf0f1;
+            color: #555;
+            margin-right: 6px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            color: #34495e;
+        }
+
+        .section-body {
+            font-size: 13px;
+            color: #444;
+            line-height: 1.6;
+        }
+
+        .section-body ul {
+            padding-left: 18px;
+        }
+
+        pre.code-block {
+            background: #f2f4f6;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-x: auto;
+        }
+
+        /* ----- ヒントボックス ----- */
+        .hint-box {
+            background: #f9fbff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid #d6e4ff;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .hint-header {
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .hint-title {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .hint-toggle {
+            font-size: 18px;
+        }
+
+        .hint-content {
+            display: none;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+
+        /* ----- フォーム ----- */
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 13px; margin-bottom: 4px; color: #34495e; }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccd1d9;
+            font-size: 13px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.12);
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .alert-info {
+            background: #ecf7ff;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 12px;
+            color: #2c3e50;
+            margin-top: 14px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <!-- ヘッダー -->
+    <div class="header">
+        SQLi Learning
+        <div class="header-sub">演習メニュー &gt; 検索フォーム SQLインジェクション体験</div>
+    </div>
+
+    <div class="container">
+
+        <!-- 左：説明カード -->
+        <div class="card">
+            <div class="card-title">演習2：検索フォームでSQLインジェクション攻撃を体験しよう</div>
+            <div class="card-subtitle">
+                <span class="badge">難易度：★★☆（中級）</span>
+                <span class="badge">対象：検索機能</span>
+            </div>
+
+            <div class="section-title">1. 演習の目的</div>
+            <div class="section-body">
+                検索フォームに対して SQL インジェクション攻撃を行い、
+                <strong>データ漏洩・UNION攻撃・構文エラー</strong> の危険性を理解します。
+            </div>
+
+            <div class="section-title">2. 想定される脆弱な実装</div>
+            <pre class="code-block">
+query = "SELECT * FROM items WHERE name LIKE '%" + q + "%'"
+cursor.execute(query)
+            </pre>         
+
+            <div class="section-title">3. やってみよう</div>
+            <div class="section-body">
+                <ul>
+                    <li>① 普通の検索をする</li>
+                    <li>② クォート <code>'</code> を入力する</li>
+                    <li>③ <code>' OR '1'='1</code> を入れる</li>
+                    <li>④ <code>' UNION SELECT ... --</code> を試す</li>
+                </ul>
+                <p>この脆弱な検索処理では、<strong>UNION攻撃・Error-based・Blind SQLi</strong> などが成立します。</p>
+            </div>
+
+            <div class="hint-box">
+                <div class="hint-header" onclick="toggleHint()">
+                    <div class="hint-title">ヒントを見る（クリックで展開）</div>
+                    <div class="hint-toggle" id="hint-toggle-symbol">＋</div>
+                </div>
+                <div class="hint-content" id="hint-content">
+                    <p>試せる例：</p>
+                    <ul>
+                        <li><code>'</code></li>
+                        <li><code>' OR '1'='1</code></li>
+                        <li><code>' UNION SELECT name, sql FROM sqlite_master --</code></li>
+                    </ul>
+                    <p>このフォームでは検索結果に <strong>SQLiの結果がそのまま表示される</strong> ため、攻撃が成立したかを観察できます。</p>
+                </div>
+            </div>
+
+            <div class="section-title">4. 学習のポイント</div>
+            <div class="section-body">
+                <ul>
+                    <li>検索フォームは攻撃者に最も狙われやすい機能</li>
+                    <li>UNION攻撃により内部テーブルが漏洩する危険</li>
+                    <li>LIKE句でも文字列連結は危険</li>
+                    <li>Prepared Statement を使うと安全になる理由を理解する</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 右：検索フォーム -->
+        <div class="card">
+            <div class="card-title">検索フォーム（演習用）</div>
+            <div class="card-subtitle">
+                /search に送らず、このページ内のみで動作します
+            </div>
+
+            <form onsubmit="return fakeSearch(event)">
+                <div class="form-group">
+                    <label for="q">検索ワード</label>
+                    <input type="text" id="q" name="q" placeholder="例：apple" autocomplete="off">
+                </div>
+
+                <button type="submit" class="btn-primary">検索</button>
+
+                <div id="search-result" class="alert-info" style="display:none;"></div>
+            </form>
+        </div>
+
+    </div>
+
+    <script>
+        function toggleHint() {
+            const c = document.getElementById("hint-content");
+            const s = document.getElementById("hint-toggle-symbol");
+            if (c.style.display === "block") {
+                c.style.display = "none"; s.textContent = "＋";
+            } else {
+                c.style.display = "block"; s.textContent = "－";
+            }
+        }
+
+        function buildSQL(q) {
+    return `
+SELECT * FROM products
+WHERE name LIKE '%${q}%'
+;`;
+}
+
+function fakeSearch(event) {
+    event.preventDefault();
+
+    const q = document.getElementById("q").value.trim();
+    const box = document.getElementById("search-result");
+    const p = q.toLowerCase();
+    const sql = buildSQL(q);
+
+    box.style.display = "block";
+
+    /* ① シングルクォート単体 → 構文エラー */
+    if (q === "'") {
+        box.style.borderLeft = "4px solid #c0392b";
+        box.innerHTML = `
+            <strong style="color:#c0392b;">構文エラー（Syntax Error）</strong><br>
+            クォートが閉じていません。<pre>${sql}</pre>
+        `;
+        return;
+    }
+
+    /* ② 認証バイパス系 */
+    if (p.includes("or 1=1") || p.includes("'1'='1") || p.includes(`"1"="1`)) {
+        fetch("/set_achievement/exercise2", { method: "POST" });
+        box.style.borderLeft = "4px solid #27ae60";
+        box.innerHTML = `
+            <strong style="color:#27ae60;">✔ 全件取得（OR条件）</strong><br>
+            条件が常に TRUE のため全件返ります。<pre>${sql}</pre>
+            <hr>
+            <b>疑似検索結果：</b><br>
+            ・Apple<br>
+            ・Orange<br>
+            ・Banana<br>
+            ・SecretItem001
+        `;
+        return;
+    }
+
+    /* ③ UNION攻撃 */
+    if (p.includes("union")) {
+        box.style.borderLeft = "4px solid #c0392b";
+        box.innerHTML = `
+            <strong style="color:#c0392b;">✕ UNION 構文エラー</strong><br>
+            列数不一致のため SQL が失敗しました。<pre>${sql}</pre>
+        `;
+        return;
+    }
+
+    /* ④ Error-based SQLi */
+    if (p.includes("1/0") || p.includes("extractvalue") ||
+        p.includes("updatexml") || p.includes("randomblob")) {
+
+        box.style.borderLeft = "4px solid #c0392b";
+        box.innerHTML = `
+            <strong style="color:#c0392b;">✕ DBエラー（Error-based SQLi）</strong><br>
+            無効な式により SQL が停止しました。<pre>${sql}</pre>
+        `;
+        return;
+    }
+
+    /* ⑤ Blind SQLi */
+    if (p.includes("substr") || p.includes("select")) {
+
+        const match = p.match(/=['"]?([a-z0-9])/i);
+        const guess = match ? match[1] : null;
+        const secret = "s";  // 仮のDBデータ1文字目
+
+        if (guess === secret) {
+            box.style.borderLeft = "4px solid #8e44ad";
+            box.innerHTML = `
+                <strong style="color:#8e44ad;">TRUE（Blind SQLi）</strong><br>
+                推測が一致しています。<pre>${sql}</pre>
+            `;
+        } else {
+            box.style.borderLeft = "4px solid #95a5a6";
+            box.innerHTML = `
+                <strong style="color:#7f8c8d;">FALSE（Blind SQLi）</strong><br>
+                推測は一致しませんでした。<pre>${sql}</pre>
+            `;
+        }
+        return;
+    }
+
+    /* ⑥ 通常検索 */
+    const sampleDB = ["apple", "banana", "orange", "test", "coffee"];
+    const hits = sampleDB.filter(item => item.includes(p));
+
+    if (hits.length > 0) {
+        box.style.borderLeft = "4px solid #2980b9";
+        box.innerHTML = `
+            <strong style="color:#2980b9;">✔ 通常検索成功</strong><br>
+            <pre>${sql}</pre>
+            <b>検索結果：</b><br>
+            ${hits.map(h => "・" + h).join("<br>")}
+        `;
+    } else {
+        box.style.borderLeft = "4px solid #7f8c8d";
+        box.innerHTML = `
+            <strong style="color:#7f8c8d;">検索結果 0 件</strong>
+            <pre>${sql}</pre>
+        `;
+    }
+}
+    </script>
+
+<div style="text-align:center; margin-top: 20px;">
+    <a href="/home"
+       style="
+           display:inline-block;
+           background:#3498db;
+           color:white;
+           padding:10px 20px;
+           border-radius:6px;
+           text-decoration:none;
+           font-size:16px;
+           margin-bottom: 20px;
+       ">
+        ← ホームに戻る
+    </a>
+</div>
+
+</body>
+</html>
+
+
+

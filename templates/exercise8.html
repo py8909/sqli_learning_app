@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>演習8：安全なSQL（防御版）</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ----- ヘッダー ----- */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            font-weight: normal;
+            color: #bdc3c7;
+            margin-top: 4px;
+        }
+
+        /* ----- レイアウト ----- */
+        .container {
+            max-width: 1100px;
+            margin: 25px auto 40px;
+            padding: 0 15px;
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container { grid-template-columns: minmax(0, 1fr); }
+        }
+
+        /* ----- カード ----- */
+        .card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #ecf0f1;
+            color: #555;
+            margin-right: 6px;
+        }
+
+        /* セクション */
+        .section-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            color: #34495e;
+        }
+
+        .section-body {
+            font-size: 13px;
+            color: #444;
+            line-height: 1.6;
+        }
+
+        .section-body ul {
+            padding-left: 18px;
+            margin: 4px 0 8px;
+        }
+
+        .section-body li {
+            margin-bottom: 2px;
+        }
+
+        /* ヒント */
+        .hint-box {
+            background: #f9fbff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid #d6e4ff;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .hint-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .hint-title {
+            font-weight: bold;
+            font-size: 13px;
+            color: #2c3e50;
+        }
+
+        .hint-toggle {
+            font-size: 18px;
+        }
+
+        .hint-content {
+            margin-top: 6px;
+            display: none;
+        }
+
+        code {
+            background: #f2f4f6;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        pre {
+            background:#f2f4f6;
+            padding:8px 10px;
+            border-radius:6px;
+            font-size:12px;
+            overflow-x:auto;
+        }
+
+        /* 右側フォームなど */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: #34495e;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccd1d9;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.12);
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .alert-info {
+            background: #ecf7ff;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 12px;
+            color: #2c3e50;
+            margin-top: 14px;
+        }
+
+        .sql-box {
+            margin-top: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: #f9fbff;
+            font-size: 12px;
+        }
+
+        .sql-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .sql-danger {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .sql-safe {
+            border-left: 4px solid #27ae60;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ヘッダー -->
+    <div class="header">
+        SQLi Learning
+        <div class="header-sub">演習メニュー &gt; 安全なSQL（防御版）</div>
+    </div>
+
+    <div class="container">
+
+        <!-- 左：説明カード -->
+        <div class="card">
+            <div class="card-title">演習8：安全なSQL（防御版）を体験しよう</div>
+            <div class="card-subtitle">
+                <span class="badge">難易度：★☆☆（初級〜中級）</span>
+                <span class="badge">対象：Prepared Statement / パラメータバインド</span>
+            </div>
+
+            <div class="section-title">1. 演習の目的</div>
+            <div class="section-body">
+                これまでの演習では、<strong>脆弱なSQL</strong>に対して攻撃を行ってきました。  
+                この演習では、<strong>「正しい書き方」を用いると攻撃がどう防げるのか</strong> を体験します。
+                <br><br>
+                具体的には：
+                <ul>
+                    <li>文字列連結による危険なSQL</li>
+                    <li>プレースホルダ（<code>%s</code> や <code>?</code> など）を使った安全なSQL</li>
+                    <li>同じ入力でも結果がまったく変わること</li>
+                </ul>
+                を比較し、<strong>パラメトリクエリがなぜ強力なのか</strong>を理解します。
+            </div>
+
+            <div class="section-title">2. 脆弱な書き方 vs 安全な書き方</div>
+            <div class="section-body">
+                例えばログイン処理は、次のように書くと危険です：
+<pre>
+# ❌ 脆弱な例（文字列連結）
+query = (
+    "SELECT * FROM users WHERE username = '" + username +
+    "' AND password = '" + password + "'"
+)
+cursor.execute(query)
+</pre>
+
+                一方、次のように<strong>プレースホルダ＋パラメータ</strong>を使うと安全になります：
+<pre>
+# ✅ 安全な例（パラメトリクエリ）
+query = "SELECT * FROM users WHERE username = %s AND password = %s"
+cursor.execute(query, (username, password))
+</pre>
+
+                プレースホルダを使うと、<code>username</code> や <code>password</code> の中身は  
+                <strong>「SQLの一部」ではなく「単なる値」として扱われる</strong>ため、  
+                <code>' OR '1'='1</code> などが入ってもSQLとして解釈されません。
+            </div>
+
+            <!-- ヒントボックス -->
+            <div class="hint-box">
+                <div class="hint-header" onclick="toggleHint()">
+                    <div class="hint-title">ヒントを見る（クリックで展開）</div>
+                    <div class="hint-toggle" id="hint-toggle-symbol">＋</div>
+                </div>
+                <div class="hint-content" id="hint-content">
+                    <p>● 防御のポイント</p>
+                    <ul>
+                        <li>SQL文と値を<strong>絶対に文字列連結しない</strong></li>
+                        <li>DBドライバが提供する<strong>プレースホルダ</strong>を必ず使う</li>
+                        <li>入力値は型チェック（長さ・形式）も行う</li>
+                        <li>ORM（SQLAlchemyなど）も内部でパラメトリクエリを使っている</li>
+                    </ul>
+                    <p>この演習では、<strong>同じ攻撃ペイロードでも安全な実装なら防げる</strong>ことを体感してください。</p>
+                </div>
+            </div>
+
+            <div class="section-title">3. 学習のポイント</div>
+            <div class="section-body">
+                <ul>
+                    <li>防御は「入力を変える」のではなく「SQLの書き方を変える」</li>
+                    <li>パラメトリクエリはSQLインジェクション対策の“第一候補”</li>
+                    <li>静的解析・動的解析の両方で「安全」と判断されやすい書き方</li>
+                    <li>現場のコードレビューでも必ずチェックされるポイント</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 右：防御体験フォーム（ページ内完結） -->
+        <div class="card">
+            <div class="card-title">安全なSQL 体験フォーム</div>
+            <div class="card-subtitle">
+                脆弱なSQLと安全なSQLの挙動の違いを、同じ入力で比較してみましょう。
+            </div>
+
+            <form onsubmit="return simulateSafeSQL(event)">
+                <div class="form-group">
+                    <label for="username">ユーザ名</label>
+                    <input type="text" id="username" placeholder="例：admin, ' OR '1'='1 --" autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">パスワード</label>
+                    <input type="password" id="password" placeholder="例：password, dummy" autocomplete="off">
+                </div>
+
+                <button type="submit" class="btn-primary">防御の挙動を確認する</button>
+            </form>
+
+            <div id="safe-result" class="alert-info" style="display:none; margin-top:14px;"></div>
+        </div>
+
+    </div>
+
+    <script>
+        function toggleHint() {
+            const content = document.getElementById("hint-content");
+            const symbol = document.getElementById("hint-toggle-symbol");
+            if (content.style.display === "block") {
+                content.style.display = "none";
+                symbol.textContent = "＋";
+            } else {
+                content.style.display = "block";
+                symbol.textContent = "－";
+            }
+        }
+
+        /* 防御挙動シミュレーション（ページ内完結） */
+        function simulateSafeSQL(event) {
+            event.preventDefault();
+
+            const user = document.getElementById("username").value;
+            const pass = document.getElementById("password").value;
+            const box  = document.getElementById("safe-result");
+
+            const vulnerableSQL =
+                "SELECT * FROM users WHERE username = '" + user +
+                "' AND password = '" + pass + "'";
+
+            const safeSQL = "SELECT * FROM users WHERE username = %s AND password = %s";
+            const params  = `params = (${JSON.stringify(user)}, ${JSON.stringify(pass)})`;
+
+            /* 簡易的に「攻撃っぽい入力か」を判定 */
+            const attackLike =
+                /' *OR *'1'='1/i.test(user) ||
+                /' *OR *'1'='1/i.test(pass) ||
+                /or\s+1=1/i.test(user) ||
+                /or\s+1=1/i.test(pass);
+
+            let html = "";
+
+            if (attackLike) {
+                fetch("/set_achievement/exercise8", { method: "POST" });
+                html += "<strong style='color:#e67e22;'>攻撃的な入力が検出されました。</strong><br><br>";
+                html += "脆弱な実装では、次のようなSQLが実行されてしまいます：<br>";
+                html += `<div class="sql-box sql-danger">
+                            <div class="sql-title">❌ 脆弱なSQL（文字列連結）</div>
+                            <code>` + vulnerableSQL + `</code>
+                         </div>`;
+                html += "<br>一方、安全な実装では入力は<strong>値としてエスケープ</strong>され、<br>";
+                html += "SQL構造は変化しません：<br>";
+                html += `<div class="sql-box sql-safe">
+                            <div class="sql-title">✅ 安全なSQL（パラメトリクエリ）</div>
+                            <code>` + safeSQL + `</code><br>
+                            <code>` + params + `</code>
+                         </div>`;
+                html += "<br><strong>結果：</strong> 攻撃ペイロードは単なる文字列として扱われ、<br>SQLインジェクションは成立しません。";
+
+                /* 達成フラグ送信（防御体験を完了したとみなす） */
+                fetch("/set_achievement/exercise_safe_sql", { method: "POST" });
+
+            } else {
+                fetch("/set_achievement/exercise8", { method: "POST" });
+                html += "<strong style='color:#27ae60;'>通常のログイン試行です。</strong><br><br>";
+                html += "脆弱な実装では、問題がなくても将来的な攻撃リスクがあります：<br>";
+                html += `<div class="sql-box sql-danger">
+                            <div class="sql-title">❌ 脆弱なSQL（文字列連結）</div>
+                            <code>` + vulnerableSQL + `</code>
+                         </div>`;
+                html += "<br>防御版では常にパラメトリクエリを使うことで、<br>";
+                html += "将来的に攻撃的な入力が来ても安全に処理できます：<br>";
+                html += `<div class="sql-box sql-safe">
+                            <div class="sql-title">✅ 安全なSQL（パラメトリクエリ）</div>
+                            <code>` + safeSQL + `</code><br>
+                            <code>` + params + `</code>
+                         </div>`;
+            }
+
+            box.style.display = "block";
+            box.innerHTML = html;
+
+            return false;
+        }
+    </script>
+    
+<div style="text-align:center; margin-top: 20px;">
+    <a href="/home"
+       style="
+           display:inline-block;
+           background:#3498db;
+           color:white;
+           padding:10px 20px;
+           border-radius:6px;
+           text-decoration:none;
+           font-size:16px;
+           margin-bottom: 20px;
+       ">
+        ← ホームに戻る
+    </a>
+</div>
+
+</body>
+</html>

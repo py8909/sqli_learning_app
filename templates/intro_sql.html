@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>イントロダクション：SQLインジェクション基礎</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            font-weight: normal;
+            color: #bdc3c7;
+            margin-top: 4px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 25px auto 40px;
+            padding: 0 15px;
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+            gap: 20px;
+        }
+
+        .menu {
+            display: none;
+            position: absolute;
+            right: 20px;
+            top: 50px;
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            width: 180px;
+        }
+
+        .menu a {
+            display: block;
+            padding: 10px;
+            margin-bottom: 5px;
+            background: #bdc3c7;
+            border-radius: 5px;
+            text-decoration: none;
+            color: black;
+        }
+
+        .menu a:hover {
+            background: #d0d6db;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 6px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 6px;
+            color: #34495e;
+        }
+
+        .section-body {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .section-body ul {
+            padding-left: 20px;
+        }
+
+        pre, code {
+            background: #f2f4f6;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        pre {
+            overflow-x: auto;
+        }
+
+        .info-box {
+            background: #f9fbff;
+            padding: 10px 12px;
+            border: 1px solid #d6e4ff;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        SQLi Learning
+        <div class="header-sub">イントロダクション &gt; SQLインジェクションとは
+        </div>
+            <div id="menu" class="menu">
+                <a href="/">ホーム</a>
+                <a href="/login">ログイン画面</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <div class="card">
+            <div class="card-title">SQLインジェクションとは？</div>
+            <div class="card-subtitle">Webアプリで最も危険な脆弱性のひとつ</div>
+
+            <div class="section-title">1. どんな攻撃？</div>
+            <div class="section-body">
+                SQLインジェクション（SQL Injection）とは、  
+                Webアプリケーションの入力欄に <strong>SQL文の一部を挿入</strong> して  
+                本来意図しないクエリを実行させる攻撃です。
+                <br><br>
+                主な被害：
+                <ul>
+                    <li>認証回避（パスワードなしログイン）</li>
+                    <li>情報漏えい（ユーザー情報の抽出）</li>
+                    <li>データ改ざん・削除</li>
+                    <li>内部構造の暴露（テーブル一覧の取得など）</li>
+                </ul>
+            </div>
+
+            <div class="section-title">2. なぜ発生するのか？</div>
+            <div class="section-body">
+                原因のほとんどは <strong>ユーザ入力をSQLに直接結合している</strong> ことです。
+<pre>
+SELECT * FROM users WHERE username='入力値';
+</pre>
+                こうしたコードは、攻撃者の入力がそのままSQLとして実行されてしまいます。
+            </div>
+
+            <div class="section-title">3. 攻撃例：不正ログイン</div>
+            <div class="section-body">
+                攻撃者が次のように入力：
+                <br><code>' OR '1'='1</code>
+<pre>
+SELECT * FROM users
+ WHERE username='' OR '1'='1'
+ AND password='';
+</pre>
+                <span style="color:red; font-weight:bold;">1=1 は常に真 → ログイン突破</span>
+            </div>
+
+            <div class="section-title">4. どう防ぐ？（概要）</div>
+            <div class="section-body">
+                SQLインジェクション対策の基本は次の4つ：
+                <ul>
+                    <li>✔ パラメトリクエリ（プリペアドステートメント）</li>
+                    <li>✔ 入力値の検証・エスケープ</li>
+                    <li>✔ エラーメッセージを漏えいさせない</li>
+                    <li>✔ ORM（SQLAlchemy）の利用</li>
+                </ul>
+                このアプリ全体では、  
+                <strong>脆弱→攻撃→静的解析→動的解析→安全版</strong> の流れを体験できます。
+            </div>
+        </div>
+
+        <!-- 右：補足・図解カード -->
+        <div class="card">
+            <div class="card-title">SQLインジェクションのしくみ（図解）</div>
+
+            <div class="info-box">
+                <strong>ユーザー入力 → SQL文へ直接連結 → DBが実行 → 結果漏えい</strong>
+                <br><br>
+                この流れのどこか1つでも問題があると攻撃が成立します。
+            </div>
+
+            <div class="section-title">脆弱コード例（まとめ）</div>
+<pre>
+username = request.form.get("username")
+query = "SELECT * FROM users WHERE username='" + username + "'"
+cursor.execute(query)
+</pre>
+
+            <div class="section-title">安全な書き方（例）</div>
+<pre>
+cursor.execute(
+    "SELECT * FROM users WHERE username = %s",
+    (username,)
+)
+</pre>
+
+            <div class="info-box">
+                パラメトリクエリを使うと、  
+                DBドライバが自動でエスケープ処理を行うため  
+                SQLインジェクションは<strong>根本的に無効化</strong>されます。
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        function toggle(id) {
+            const box = document.getElementById(id);
+            box.style.display = (box.style.display === "block") ? "none" : "block";
+        }
+    </script>
+
+<div style="text-align:center; margin-top: 20px;">
+    <a href="/home"
+       style="
+           display:inline-block;
+           background:#3498db;
+           color:white;
+           padding:10px 20px;
+           border-radius:6px;
+           text-decoration:none;
+           font-size:16px;
+           margin-bottom: 20px;
+       ">
+        ← ホームに戻る
+    </a>
+</div>
+
+</body>
+</html>

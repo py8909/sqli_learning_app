@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>演習7：動的解析デモ（SQLi検出）</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ----- ヘッダー ----- */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            font-weight: normal;
+            color: #bdc3c7;
+        }
+
+        /* ----- レイアウト ----- */
+        .container {
+            max-width: 1100px;
+            margin: 25px auto 40px;
+            padding: 0 15px;
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+            gap: 20px;
+        }
+
+        /* ----- カード ----- */
+        .card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #ecf0f1;
+            color: #555;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            margin-right: 6px;
+        }
+
+        /* ----- セクション ----- */
+        .section-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 6px;
+        }
+
+        .section-body {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .section-body ul {
+            padding-left: 18px;
+        }
+
+        /* ----- コード等 ----- */
+        pre {
+            background: #f2f4f6;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+
+        code {
+            background: #f2f4f6;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        /* ----- ヒント ----- */
+        .hint-box {
+            background: #f9fbff;
+            border: 1px solid #d6e4ff;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .hint-header {
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .hint-content {
+            margin-top: 6px;
+            display: none;
+        }
+
+        /* ----- フォーム ----- */
+        .form-group { margin-bottom: 12px; }
+        label { font-size: 13px; margin-bottom: 4px; display: block; }
+        input[type="text"] {
+            width: 100%; padding: 8px 10px;
+            border-radius: 6px; border: 1px solid #ccd1d9;
+        }
+
+        .btn-primary {
+            background: #3498db; color: white;
+            padding: 8px 16px; border-radius: 6px;
+            border: none; cursor: pointer;
+        }
+
+        .alert-info {
+            margin-top: 14px;
+            padding: 8px 10px;
+            background: #ecf7ff;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- ヘッダー -->
+<div class="header">
+    SQLi Learning
+    <div class="header-sub">演習メニュー &gt; 動的解析デモ</div>
+</div>
+
+<div class="container">
+
+    <!-- 左：説明カード -->
+    <div class="card">
+        <div class="card-title">演習7：動的解析デモ（SQLi自動検出）</div>
+        <div class="card-subtitle">
+            <span class="badge">難易度：★★★★（上級）</span>
+            <span class="badge">対象：レスポンス差分・HTTPステータス</span>
+        </div>
+
+        <div class="section-title">1. 演習の目的</div>
+        <div class="section-body">
+            動的解析は、攻撃ペイロードを実際に送信し、  
+            <strong>レスポンスの変化</strong>から SQLインジェクションを検出する手法です。
+            <br><br>
+            この演習では、次の点を体験します：
+            <ul>
+                <li>正常時（ベースライン）との差分を見る</li>
+                <li>ステータスコードの変化を見る</li>
+                <li>レスポンス長の増減を見る</li>
+                <li>エラーメッセージの露出を見る</li>
+            </ul>
+        </div>
+
+        <div class="section-title">2. 動的解析の仕組み</div>
+        <div class="section-body">
+            典型的なSQLi検出ロジックは次の通りです：
+        <ul>
+            <li>ベースライン取得：正常な入力を送信し、レスポンスの状態を記録</li>
+            <li>攻撃ペイロード送信：SQLi攻撃を試みるペイロードを送信</li>
+            <li>差分解析：レスポンスのステータスコード、長さ、内容を比較</li>
+            <li>判定：差分が一定基準を超えた場合、SQLiの可能性ありと判断</li>
+        </ul>
+        </div>
+
+        <div class="section-title">3. やってみよう</div>
+        <div class="section-body">
+            右側のフォームから攻撃ペイロードを送信し、動的解析結果を確認しましょう。
+            <ul>
+                <li><code>' OR '1'='1 --</code></li>
+                <li><code>' UNION SELECT 1,2,3 --</code></li>
+                <li><code>'; DROP TABLE users; --</code></li>
+            </ul>
+        </div>
+
+        <!-- ヒント -->
+        <div class="hint-box">
+            <div class="hint-header" onclick="toggleHint()">
+                <div class="hint-title">ヒントを見る（クリックで展開）</div>
+                <div id="hint-toggle-symbol">＋</div>
+            </div>
+            <div class="hint-content" id="hint-content">
+                <p>動的解析が利用する主な指標：</p>
+                <ul>
+                    <li> ステータスコード：200 → 500 になった？</li>
+                    <li> レスポンス長：急に長くなった？短くなった？</li>
+                    <li> エラーメッセージ：DBの構文エラーが露出している？</li>
+                </ul>
+                <p>これらが起きたら、SQLiの可能性が高いと判断できます。</p>
+            </div>
+        </div>
+
+        <div class="section-title">4. 学習ポイント</div>
+        <div class="section-body">
+            <ul>
+                <li>動的解析はアプリの「振る舞い」を観察する手法</li>
+                <li>静的解析と組み合わせると精度が向上する</li>
+                <li>実際の診断ツール（SQLMapなど）も差分解析を使っている</li>
+                <li>Time-based / Blind SQLi の検出にも応用可能</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 右：動的解析デモフォーム -->
+        <div class="card">
+        <div class="card-title">動的解析デモ（ページ内シミュレーション）</div>
+        <div class="card-subtitle">
+        ペイロードを送信し、レスポンスの差分を疑似的に解析します。
+        </div>
+
+    <div class="form-group">
+        <label for="payload">攻撃ペイロード</label>
+        <input type="text" id="payload" placeholder="例：' OR '1'='1 --" autocomplete="off">
+    </div>
+
+    <button class="btn-primary" onclick="runDynamicTest()">解析を実行</button>
+
+    <div id="dyn-result" class="alert-info" style="display:none; margin-top:14px;"></div>
+</div>
+
+</div>
+
+
+<script>
+    function toggleHint() {
+        const c = document.getElementById("hint-content");
+        const s = document.getElementById("hint-toggle-symbol");
+        if (c.style.display === "block") {
+            c.style.display = "none";
+            s.textContent = "＋";
+        } else {
+            c.style.display = "block";
+            s.textContent = "－";
+        }
+    }
+
+    function runDynamicTest() {
+
+    const input = document.getElementById("payload").value.trim();
+    const result = document.getElementById("dyn-result");
+
+    if (!input) {
+        result.style.display = "block";
+        result.innerHTML = "⚠ ペイロードを入力してください。";
+        return;
+    }
+
+    /* --- ベースライン（正常入力の想定） --- */
+    const baseline = {
+        status: 200,
+        length: 52,
+        body: "OK"
+    };
+
+    /* --- 疑似攻撃判定ロジック --- */
+    let detected = false;
+    let status = baseline.status;
+    let length = baseline.length;
+    let message = "";
+
+    // ステータス変化
+    if (/union|drop|;/i.test(input)) {
+        status = 500;
+        detected = true;
+        message += "・ステータスコードが 500 に変化<br>";
+    }
+
+    // レスポンス長変化
+    if (/or\s*'1'='1|or\s*1=1/i.test(input)) {
+        length = 130;
+        detected = true;
+        message += "・レスポンス長が通常より大きい（= データが漏れた可能性）<br>";
+    }
+
+    // エラー露出
+    if (/'|--|"/.test(input) && !/1=1/.test(input)) {
+        detected = true;
+        message += "・SQL構文エラーの可能性（エラーメッセージ露出）<br>";
+    }
+
+    /* --- 結果の生成 --- */
+    let html = "<strong>解析結果：</strong><br><br>";
+    html += `● ステータスコード：${status}<br>`;
+    html += `● レスポンス長：${length}<br>`;
+    html += "<br>";
+
+    if (detected) {
+        fetch("/set_achievement/exercise7", { method: "POST" });
+        html += `<strong style="color:#c0392b;">SQLインジェクションの可能性あり</strong><br><br>${message}`;
+
+        /* 達成記録 */
+        fetch("/set_achievement/exercise_dynamic", { method: "POST" });
+
+    } else {
+        html += `<strong style="color:#27ae60;">問題なし（正常動作）</strong><br>`;
+        html += "差分は検出されませんでした。";
+    }
+
+    /* 表示 */
+    result.style.display = "block";
+    result.innerHTML = html;
+}
+</script>
+    
+<div style="text-align:center; margin-top: 20px;">
+    <a href="/home"
+       style="
+           display:inline-block;
+           background:#3498db;
+           color:white;
+           padding:10px 20px;
+           border-radius:6px;
+           text-decoration:none;
+           font-size:16px;
+           margin-bottom: 20px;
+       ">
+        ← ホームに戻る
+    </a>
+</div>
+
+</body>
+</html>

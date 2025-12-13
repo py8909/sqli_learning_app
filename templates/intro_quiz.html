@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>小テスト：イントロダクション確認</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f5f7fa;
+        margin: 0; padding: 0;
+    }
+
+    /* --- Header --- */
+    .header {
+        background: #2c3e50;
+        color: white;
+        padding: 15px 20px;
+        font-size: 22px;
+        font-weight: bold;
+        position: relative;
+    }
+
+    .header-sub {
+        font-size: 13px;
+        font-weight: normal;
+        color: #bdc3c7;
+        margin-top: 4px;
+    }
+
+    .menu {
+            display: none;
+            position: absolute;
+            right: 20px;
+            top: 50px;
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            width: 180px;
+        }
+
+        .menu a {
+            display: block;
+            padding: 10px;
+            margin-bottom: 5px;
+            background: #bdc3c7;
+            border-radius: 5px;
+            text-decoration: none;
+            color: black;
+        }
+
+        .menu a:hover {
+            background: #d0d6db;
+        }
+
+    /* Layout */
+    .container {
+        max-width: 900px;
+        margin: 30px auto 40px;
+        padding: 0 15px;
+    }
+
+    /* Card */
+    .card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 20px 22px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+
+    .card-title {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+
+    .card-subtitle {
+        font-size: 13px;
+        color: #7f8c8d;
+        margin-bottom: 14px;
+    }
+
+    .question {
+        font-size: 15px;
+        font-weight: bold;
+        margin-top: 10px;
+        margin-bottom: 8px;
+        color: #34495e
+    }
+
+    .option {
+        margin-left: 18px;
+        margin-bottom: 6px;
+    }
+
+    .btn-primary {
+        background: #3498db;
+        padding: 10px 16px;
+        color: white;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        margin-top: 20px;
+        font-size: 15px;
+    }
+
+    .btn-primary:disabled {
+        background: #9ec9e8;
+        cursor: not-allowed;
+    }
+
+    .result {
+        background: #f0f7ff;
+        padding: 12px;
+        border-radius: 7px;
+        margin-top: 10px;
+    }
+
+    .correct {
+        color: #27ae60;
+        font-weight: bold;
+    }
+
+    .incorrect {
+        color: #c0392b;
+        font-weight: bold;
+    }
+
+    .explanation {
+        margin-top: 8px;
+        padding: 10px;
+        background: #f9fbff;
+        border-left: 4px solid #72a3f7;
+        border-radius: 6px;
+        font-size: 13px;
+        display: none;
+    }
+
+    .link {
+        margin-top: 4px;
+    }
+
+</style>
+</head>
+
+<body>
+
+<!-- Header -->
+<div class="header">
+    SQLi Learning
+    <div class="header-sub">イントロダクション &gt; イントロダクション確認テスト
+    </div>
+            <div id="menu" class="menu">
+                <a href="/">ホーム</a>
+                <a href="/login">ログイン画面</a>
+            </div>
+        </div>
+</div>
+
+<div class="container">
+
+    <div class="card">
+        <div class="card-title">小テスト（全10問）</div>
+        <div class="card-subtitle">ページを開くたびに問題がランダム表示されます</div>
+
+        <form id="quizForm"></form>
+
+        <button id="finishBtn" class="btn-primary" onclick="checkAnswers()">解答完了</button>
+
+        <div id="resultArea"></div>
+    </div>
+
+</div>
+
+<script>
+/* ===================================
+   小テストデータ（問題＋正答＋解説）
+   =================================== */
+const questions = [
+    {
+        q: "SQLインジェクションとは何ですか？",
+        type: "single",
+        options: [
+            "データベースの高速化手法",
+            
+            "HTML をきれいに書く方法",
+            "大量アクセス攻撃",
+            "意図しない SQL 文を実行させる攻撃"
+        ],
+        answer: ["3"],
+        explanation: "SQLインジェクションは、入力値を通じて本来意図しないSQLを実行させる攻撃です。",
+        link: "/intro_sql"
+    },
+    {
+        q: "SQLインジェクションが成立する主な原因は？",
+        type: "single",
+        options: [
+            "プリペアドステートメントの利用",
+            "ユーザー入力を SQL に直接連結している",
+            "HTML のエスケープをしている",
+            "DB の暗号化"
+        ],
+        answer: ["1"],
+        explanation: "ユーザーの入力をSQL文に直接連結すると、攻撃文がそのまま実行されてしまいます。",
+        link: "/intro_sql"
+    },
+    {
+        q: "SQLインジェクションで可能になることは？（複数選択）",
+        type: "multi",
+        options: [
+            "パスワードなしでのログイン",
+            "データベース内の情報削除",
+            "サーバーの温度を変更",
+            "テーブル構造の取得"
+        ],
+        answer: ["0","1","3"],
+        explanation: "SQLiでは認証回避、データ削除、テーブル情報取得などが可能です。",
+        link: "/intro_sql"
+    },
+    {
+        q: "' OR '1'='1 が引き起こすものは？",
+        type: "single",
+        options: [
+            "WHERE 条件が常に真になる",
+            "SQL文が高速化する",
+            "入力エラーが常に出る",
+            "DB のバージョンが更新される"
+        ],
+        answer: ["0"],
+        explanation: "1=1 は常に真となるため、認証が突破されます。",
+        link: "/intro_sql"
+    },
+    {
+        q: "Web セキュリティが重要な理由として正しいのは？（複数選択）",
+        type: "multi",
+        options: [
+            "個人情報流出のリスクがある",
+            "法律違反になる可能性がある",
+            "企業の信用失墜につながる",
+            "セキュリティは不要"
+        ],
+        answer: ["0","1","2"],
+        explanation: "Webセキュリティは個人情報保護、法規制、企業信頼のために必須です。",
+        link: "/security_importance"
+    },
+    {
+        q: "SQLインジェクションを防ぐ最も効果的な方法は？",
+        type: "single",
+        options: [
+            "HTMLを装飾する",
+            "パラメトリクエリを使う",
+            "入力欄を減らす",
+            "DBの電源を切る"
+        ],
+        answer: ["1"],
+        explanation: "プリペアドステートメント（パラメトリクエリ）が最も有効な対策です。",
+        link: "/safe_sql"
+    },
+    {
+        q: "学習上の注意として正しいものは？（複数選択）",
+        type: "multi",
+        options: [
+            "本番サービスに攻撃してもよい",
+            "ローカル環境でのみ学習する",
+            "重要データを含むDBは使わない",
+            "SNSで攻撃方法を共有する"
+        ],
+        answer: ["1","2"],
+        explanation: "学習用攻撃は必ずローカル環境で、重要データを扱わないようにします。",
+        link: "/caution"
+    },
+    {
+        q: "なぜ開発者がセキュリティを理解すべきか？",
+        type: "single",
+        options: [
+            "事故の多くが開発者のミスだから",
+            "セキュリティは後付けでOKだから",
+            "管理者だけ理解すれば良い",
+            "攻撃者と同じツールを使うため"
+        ],
+        answer: ["0"],
+        explanation: "多くの事故は開発段階の小さなミスが原因です。",
+        link: "/security_importance"
+    },
+    {
+        q: "ブラインドSQLインジェクションの特徴は？",
+        type: "single",
+        options: [
+            "エラーメッセージが表示されない",
+            "SQL文が暗号化される",
+            "レスポンスが常に同じJSONになる",
+            "フロントのみが攻撃される"
+        ],
+        answer: ["0"],
+        explanation: "エラーメッセージを返さず、挙動の差で判断します。",
+        link: "/intro_blind"
+    },
+    {
+        q: "この学習アプリの目的として最も適切なのは？",
+        type: "single",
+        options: [
+            "実サイトに攻撃する力を付ける",
+            "攻撃→分析→修正の流れを理解する",
+            "DBを破壊する練習",
+            "インターネット全体を診断する練習"
+        ],
+        answer: ["1"],
+        explanation: "攻撃→分析→防御の理解を目的としています。",
+        link: "/learning_flow"
+    }
+];
+
+/* ===== ランダムシャッフル ===== */
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        let r = Math.floor(Math.random() * (i + 1));
+        [array[i], array[r]] = [array[r], array[i]];
+    }
+}
+shuffle(questions);
+
+const form = document.getElementById("quizForm");
+
+/* ===== 問題を描画 ===== */
+questions.forEach((q, idx) => {
+    let html = `<div id="qhead${idx}" class="question">${idx+1}. ${q.q}</div>`;
+
+
+    q.options.forEach((opt, i) => {
+        const name = q.type === "single" ? `q${idx}` : `q${idx}[]`;
+        const type = q.type === "single" ? "radio" : "checkbox";
+
+        html += `
+            <div class="option">
+                <label>
+                    <input type="${type}" name="${name}" value="${i}">
+                    ${opt}
+                </label>
+            </div>`;
+    });
+
+    html += `<div id="ex${idx}" class="explanation"></div>`;
+    html += "<hr>";
+    form.innerHTML += html;
+});
+
+function checkAnswers() {
+    const finishBtn = document.getElementById("finishBtn");
+
+    let score = 0;  // 得点カウンター
+
+    questions.forEach((q, idx) => {
+        const userAnswers = [];
+        const selectedInputs = document.querySelectorAll(
+            `input[name='q${idx}']:checked, input[name='q${idx}[]']:checked`
+        );
+
+        selectedInputs.forEach(i => userAnswers.push(i.value));
+
+        const ua = userAnswers.sort().join(",");
+        const aa = q.answer.sort().join(",");
+
+        /* --- 正誤表示 --- */
+        const questionHeader = document.querySelector(`#qhead${idx}`);
+        if (ua === aa) {
+            questionHeader.innerHTML += ` <span class="correct">〇 正解</span>`;
+            score++;
+        } else {
+            questionHeader.innerHTML += ` <span class="incorrect">✕ 不正解</span>`;
+        }
+
+        /* --- 選択肢ハイライト処理 --- */
+        const allOptions = document.querySelectorAll(
+            `input[name='q${idx}'], input[name='q${idx}[]']`
+        );
+
+        allOptions.forEach(opt => {
+            const optDiv = opt.closest(".option");
+
+            // 正解の選択肢
+            if (q.answer.includes(opt.value)) {
+                optDiv.classList.add("correct-option");
+            }
+
+            // 不正解で選択したもの
+            if (opt.checked && !q.answer.includes(opt.value)) {
+                optDiv.classList.add("incorrect-option");
+            }
+        });
+
+        /* --- 解説表示 --- */
+        const ex = document.getElementById(`ex${idx}`);
+        ex.style.display = "block";
+        ex.innerHTML = `
+            <b>解説：</b> ${q.explanation}
+            <div class="link">
+                <a href="${q.link}" target="_blank">▶ 詳しく学ぶ（関連イントロダクション）</a>
+            </div>
+        `;
+    });
+
+    /* --- 全選択肢を無効化 --- */
+    const allInputs = document.querySelectorAll("input");
+    allInputs.forEach(i => i.disabled = true);
+
+    finishBtn.disabled = true;
+
+    /* --- 得点表示 --- */
+    document.getElementById("resultArea").innerHTML = `
+        <div class="result">
+            <h3>得点：${score} / ${questions.length} 点</h3>
+        </div>
+    `;
+
+    /* --- 満点だった場合のみ進捗をDBに保存 --- */
+    if (score === questions.length) {
+        fetch("/set_achievement/intro_quiz", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                exercise: "intro_quiz"   // ← このテストに対応する演習名
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log("進捗登録:", data);
+            // 画面にも表示
+            const doneMsg = document.createElement("div");
+            doneMsg.style.color = "#27ae60";
+            doneMsg.style.marginTop = "10px";
+            doneMsg.innerHTML = "✔ このテストに満点のため、進捗として登録されました！";
+            document.getElementById("resultArea").appendChild(doneMsg);
+        })
+        .catch(err => console.error("進捗登録エラー:", err));
+    } else {
+        const warnMsg = document.createElement("div");
+        warnMsg.style.color = "#c0392b";
+        warnMsg.style.marginTop = "10px";
+        warnMsg.innerHTML = "✕ 満点ではないため進捗登録されません。";
+        document.getElementById("resultArea").appendChild(warnMsg);
+    }
+
+
+    /* --- もう一度トライするボタン --- */
+    const retryBtn = document.createElement("button");
+    retryBtn.textContent = "もう一度トライする";
+    retryBtn.className = "btn-primary";
+    retryBtn.style.marginTop = "15px";
+    retryBtn.onclick = () => location.reload();
+    document.getElementById("resultArea").appendChild(retryBtn);
+}
+
+</script>
+
+<script>
+        function toggle(id) {
+            const box = document.getElementById(id);
+            box.style.display = (box.style.display === "block") ? "none" : "block";
+        }
+</script>
+
+<div style="text-align:center; margin-top: 20px;">
+    <a href="/home"
+       style="
+           display:inline-block;
+           background:#3498db;
+           color:white;
+           padding:10px 20px;
+           border-radius:6px;
+           text-decoration:none;
+           font-size:16px;
+           margin-bottom: 20px;
+       ">
+        ← ホームに戻る
+    </a>
+</div>
+
+</body>
+</html>
+
+

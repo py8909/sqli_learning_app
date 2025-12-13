@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>イントロダクション：SQL基礎</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0px;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            font-weight: normal;
+            color: #bdc3c7;
+            margin-top: 4px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 25px auto 40px;
+            padding: 0 15px;
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+            gap: 20px;
+        }
+
+        
+        .menu {
+            display: none;
+            position: absolute;
+            right: 20px;
+            top: 50px;
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            width: 180px;
+        }
+
+        .menu a {
+            display: block;
+            padding: 10px;
+            margin-bottom: 5px;
+            background: #bdc3c7;
+            border-radius: 5px;
+            text-decoration: none;
+            color: black;
+        }
+
+        .menu a:hover {
+            background: #d0d6db;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 6px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 6px;
+            color: #34495e;
+        }
+
+        .section-body {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .section-body ul {
+            padding-left: 20px;
+        }
+
+        pre, code {
+            background: #f2f4f6;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        pre {
+            overflow-x: auto;
+        }
+
+        .info-box {
+            background: #f9fbff;
+            padding: 10px 12px;
+            border: 1px solid #d6e4ff;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        SQLi Learning
+        <div class="header-sub">イントロダクション &gt; なぜセキュリティが重要なのか
+        </div>
+            <div id="menu" class="menu">
+                <a href="/">ホーム</a>
+                <a href="/login">ログイン画面</a>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="container">
+        <div class="card">
+    <div class="card-title">なぜ Web セキュリティは重要なのか？</div>
+    <div class="card-subtitle">Webアプリ開発者が必ず理解すべき理由</div>
+
+    <div class="section-title">1. Webアプリは重要な情報を扱っている</div>
+    <div class="section-body">
+        現代のWebアプリケーションは、ログイン機能・ユーザー情報・データ管理・決済情報など、
+        <b>非常に重要なデータ</b>を扱っています。
+        <br><br>
+        セキュリティが不十分な状態は攻撃者にとって大きなチャンスであり、
+        <span style="color:red; font-weight:bold;">深刻な被害</span>につながります。
+    </div>
+
+    <div class="section-title">2. 個人情報・機密情報の漏えい</div>
+    <div class="section-body">
+        SQLインジェクションやXSSなどの脆弱性により、  
+        氏名・メールアドレス・パスワード・クレジットカード情報などが流出する事件は後を絶ちません。
+    </div>
+
+    <div class="section-title">3. 不正アクセス・アカウント乗っ取り</div>
+    <div class="section-body">
+        開発者のミスを突かれると、不正ログイン・管理者権限の奪取・設定の書き換えなどが発生します。
+        サービス全体が停止に追い込まれるケースもあります。
+    </div>
+
+    <div class="section-title">4. データの破壊・改ざん</div>
+    <div class="section-body">
+        SQLインジェクションによりデータベースの内容が自由に書き換えられます。
+        <ul>
+            <li>ユーザーアカウントの削除</li>
+            <li>注文情報の改ざん</li>
+            <li>ログデータの消去</li>
+        </ul>
+        企業運営に致命的な影響を与えます。
+    </div>
+
+    <div class="section-title">5. 金銭的損失と企業イメージの悪化</div>
+    <div class="section-body">
+        情報漏えい事件は、賠償金・信頼の損失・株価の下落など、
+        長期的なダメージを企業に与えます。
+        一度失った信用を取り戻すのは非常に困難です。
+    </div>
+
+    <div class="section-title">6. 法律・規制への違反</div>
+    <div class="section-body">
+        日本では「個人情報保護法」「不正アクセス禁止法」により、
+        セキュリティ事故は法的責任を問われることがあります。
+        海外向けサービスでは GDPR などより厳しい規制もあります。
+    </div>
+
+    <div class="section-title">7. なぜ“開発者”が理解しなければならないのか？</div>
+    <div class="section-body">
+        多くのセキュリティ事故は、開発段階の小さなミスが原因です。
+        セキュリティは後付けではなく、
+        <b>最初から設計に組み込むべき必須要素</b>です。
+        <br><br>
+        典型的なミス：
+        <ul>
+            <li>入力値をそのままSQLに結合する</li>
+            <li>パスワードを平文保存する</li>
+            <li>アクセス制御が甘いまま放置する</li>
+            <li>エラーメッセージをそのまま画面に出す</li>
+        </ul>
+        これらはすべて、開発者の知識で防ぐことができます。
+    </div>
+
+    <div class="section-title">8. “誰でも攻撃できる” 時代</div>
+    <div class="section-body">
+        現代の攻撃は自動化されており、世界中の攻撃者が bot を使って
+        24 時間スキャンを行っています。
+        <br>
+        <strong>「小規模サイトだから安全」という時代ではありません。</strong>
+    </div>
+
+    <div class="section-title">9. この学習アプリで学ぶ意義</div>
+    <div class="section-body">
+        この学習アプリでは、実際に脆弱なアプリを使って、
+        <b>攻撃 → 挙動の分析 → 修正 → 防御</b> の流れを体験できます。
+        <br>
+        これにより、座学では得られない「実感」と「理解」を身につけられます。
+    </div>
+</div>
+
+
+    <script>
+        function toggle(id) {
+            const box = document.getElementById(id);
+            box.style.display = (box.style.display === "block") ? "none" : "block";
+        }
+    </script>
+
+<div style="text-align:center; margin-top: 20px;">
+    <a href="/home"
+       style="
+           display:inline-block;
+           background:#3498db;
+           color:white;
+           padding:10px 20px;
+           border-radius:6px;
+           text-decoration:none;
+           font-size:16px;
+           margin-bottom: 20px;
+       ">
+        ← ホームに戻る
+    </a>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>演習：ログインSQLインジェクション体験</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ----- ヘッダー ----- */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            font-weight: normal;
+            color: #bdc3c7;
+            margin-top: 4px;
+        }
+
+        /* ----- レイアウト ----- */
+        .container {
+            max-width: 1100px;
+            margin: 25px auto 40px;
+            padding: 0 15px;
+
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        /* ----- カード ----- */
+        .card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #ecf0f1;
+            color: #555;
+            margin-right: 6px;
+        }
+
+        /* ----- セクション ----- */
+        .section-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            color: #34495e;
+        }
+
+        .section-body {
+            font-size: 13px;
+            color: #444;
+            line-height: 1.6;
+        }
+
+        pre.code-block {
+            background: #f2f4f6;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-x: auto;
+        }
+
+        /* ----- ヒント ----- */
+        .hint-box {
+            background: #f9fbff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid #d6e4ff;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .hint-header {
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .hint-title {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .hint-toggle {
+            font-size: 18px;
+        }
+
+        .hint-content {
+            display: none;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+
+        /* ----- フォーム ----- */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: #34495e;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccd1d9;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.12);
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        /* 結果表示 */
+        #login-result {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+            background: #ecf7ff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ヘッダー -->
+    <div class="header">
+        SQLi Learning
+        <div class="header-sub">演習メニュー &gt; ログインSQLi体験</div>
+    </div>
+
+    <div class="container">
+
+        <!-- 左パネル -->
+        <div class="card">
+            <div class="card-title">演習1：ログイン画面でSQLインジェクション攻撃を体験しよう</div>
+            <div class="card-subtitle">
+                <span class="badge">難易度：★☆☆（初級）</span>
+                <span class="badge">対象：ログイン機能</span>
+            </div>
+
+            <div class="section-title">1. 演習の目的</div>
+            <div class="section-body">
+                この演習では、<strong>ログインフォームに対するSQLインジェクション攻撃</strong>を体験し、
+                <strong>「脆弱な書き方」と「正しい対策」</strong>のイメージをつかむことを目的とします。
+            </div>
+
+            <div class="section-title">2. 想定される脆弱な実装</div>
+            <pre class="code-block">
+query = "SELECT * FROM users WHERE username = '" + username + "' AND password = '" + password + "'"
+cursor.execute(query)
+            </pre>
+
+            <div class="section-title">3. やってみよう</div>
+            <div class="section-body">
+                右側のログインフォームを使って、次のように試してみてください：
+                <ul>
+                    <li>① 普通にユーザ名／パスワードを入力してみる</li>
+                    <li>② パスワードに <code>'</code> だけを入れる</li>
+                    <li>③ 「ヒント」を見て、SQLが真になる文字列を考えて入力してみる</li>
+                </ul>
+            </div>
+
+            <!-- ヒント -->
+            <div class="hint-box">
+                <div class="hint-header" onclick="toggleHint()">
+                    <div class="hint-title">ヒントを見る（クリックで展開）</div>
+                    <div class="hint-toggle" id="hint-toggle-symbol">＋</div>
+                </div>
+
+                <div class="hint-content" id="hint-content">
+                    <p>・パスワード欄に、<strong>常に条件が真になる論理式</strong> を足してみましょう。</p>
+                    <p>例：</p>
+                    <ul>
+                        <li>ユーザ名：<code>admin</code></li>
+                        <li>パスワード：<code>' OR '1'='1 --</code></li>
+                    </ul>
+
+<pre style="background:#f2f4f6;padding:8px 10px;border-radius:6px;font-size:12px;overflow-x:auto;">
+SELECT * FROM users
+WHERE username = 'admin'
+AND password = '' OR '1'='1' -- '
+</pre>
+                    <p><code>'1'='1'</code> が真であるため、認証をバイパスできます。</p>
+                </div>
+            </div>
+
+            <div class="section-title">4. 学習のポイント</div>
+            <div class="section-body">
+                <ul>
+                    <li>文字列連結でSQLを作る危険性を体験する</li>
+                    <li>Prepared Statement が防御になる理由を理解する</li>
+                    <li>エラーの挙動から内部構造が推測されてしまう怖さを知る</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">ログインフォーム（演習用）</div>
+            <div class="card-subtitle">/login は使わず、このページ内のみで動作します</div>
+
+            <form onsubmit="return fakeLogin(event)">
+                <div class="form-group">
+                    <label for="username">ユーザ名</label>
+                    <input type="text" id="username" placeholder="例：admin" autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">パスワード</label>
+                    <input type="text" id="password" placeholder="例：password" autocomplete="off">
+                </div>
+
+                <button type="submit" class="btn-primary">ログイン</button>
+
+                <div id="login-result"></div>
+            </form>
+        </div>
+    </div>
+
+    <script> 
+
+function toggleHint() {
+    const content = document.getElementById("hint-content");
+    const symbol = document.getElementById("hint-toggle-symbol");
+
+    if (content.style.display === "block") {
+        content.style.display = "none";
+        symbol.textContent = "＋";
+    } else {
+        content.style.display = "block";
+        symbol.textContent = "－";
+    }
+}
+
+function buildSQL(user, pass) {
+    return (
+`SELECT * FROM users
+WHERE username = '${user}'
+  AND password = '${pass}';`
+    );
+}
+
+function fakeLogin(event) {
+    event.preventDefault();
+
+    const user = document.getElementById("username").value.trim();
+    const pass = document.getElementById("password").value.trim();
+    const result = document.getElementById("login-result");
+
+    const sql = buildSQL(user, pass);
+    const p = pass.toLowerCase();
+
+    result.style.display = "block";
+
+    if (p.includes("or 1=1") || p.includes("'1'='1") || p.includes(`"1"="1`)) {
+        fetch("/set_achievement/exercise1", { method: "POST" });
+        result.style.border = "3px solid #27ae60";
+        result.innerHTML = `
+            <strong style="color:#27ae60;">✔ 認証バイパス（OR条件）成功！</strong><br>
+            条件式が常に TRUE になりました。<br><br>
+            <b>実行された疑似SQL：</b><br>
+            <pre>${sql}</pre>
+        `;
+        return;
+    }
+
+    if (p.includes("union")) {
+        result.style.border = "3px solid #c0392b";
+        result.innerHTML = `
+            <strong style="color:#c0392b;">✕ UNION構文エラー</strong><br>
+            列数が一致せず SQL が実行できません。<br><br>
+            <b>疑似SQL：</b><br>
+            <pre>${sql}</pre>
+        `;
+        return;
+    }
+
+    if (p.includes("1/0") ||
+        p.includes("extractvalue") ||
+        p.includes("updatexml") ||
+        p.includes("randomblob")) {
+
+        result.style.border = "3px solid #c0392b";
+        result.innerHTML = `
+            <strong style="color:#c0392b;">✕ DBエラー（Error-based SQLi）</strong><br>
+            不正な式により SQL が停止しました。<br><br>
+            <b>疑似SQL：</b><br>
+            <pre>${sql}</pre>
+        `;
+        return;
+    }
+
+    if (p.includes("substr") || p.includes("select")) {
+
+        // 1文字目の推測（仮データ）
+        const secretFirst = "s";
+        const m = p.match(/=['"]?([a-z0-9])/i);
+        const guess = m ? m[1] : null;
+
+        if (guess === secretFirst) {
+            result.style.border = "3px solid #8e44ad";
+            result.innerHTML = `
+                <strong style="color:#8e44ad;">TRUE：条件一致（Blind SQLi）</strong><br>
+                推測した値が正しいようです。<br><br>
+                <b>疑似SQL：</b><br>
+                <pre>${sql}</pre>
+            `;
+        } else {
+            result.style.border = "3px solid #95a5a6";
+            result.innerHTML = `
+                <strong style="color:#7f8c8d;">FALSE：条件不一致（Blind SQLi）</strong><br>
+                推測値が一致しませんでした。<br><br>
+                <b>疑似SQL：</b><br>
+                <pre>${sql}</pre>
+            `;
+        }
+        return;
+    }
+
+    if (user === "admin" && pass === "password") {
+        result.style.border = "3px solid #2980b9";
+        result.innerHTML = `
+            <strong style="color:#2980b9;">✔ 通常ログイン成功</strong><br>
+            admin / password で認証されました。<br><br>
+            <b>疑似SQL：</b><br>
+            <pre>${sql}</pre>
+        `;
+        return;
+    }
+
+    result.style.border = "3px solid #c0392b";
+    result.innerHTML = `
+        <strong style="color:#c0392b;">✕ ログイン失敗</strong><br>
+        SQLインジェクションも通常ログインも成立しませんでした。<br><br>
+        <b>疑似SQL：</b><br>
+        <pre>${sql}</pre>
+    `;
+}
+</script>
+
+<div style="text-align:center; margin-top: 20px;">
+    <a href="/home"
+       style="
+           display:inline-block;
+           background:#3498db;
+           color:white;
+           padding:10px 20px;
+           border-radius:6px;
+           text-decoration:none;
+           font-size:16px;
+           margin-bottom: 20px;
+       ">
+        ← ホームに戻る
+    </a>
+</div>
+
+</body>
+</html>
+
+
+
+
+
+
+
+

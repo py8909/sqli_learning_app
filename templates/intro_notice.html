@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>イントロダクション：SQL基礎</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0px;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            font-weight: normal;
+            color: #bdc3c7;
+            margin-top: 4px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 25px auto 40px;
+            padding: 0 15px;
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+            gap: 20px;
+        }
+
+        
+        .menu {
+            display: none;
+            position: absolute;
+            right: 20px;
+            top: 50px;
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            width: 180px;
+        }
+
+        .menu a {
+            display: block;
+            padding: 10px;
+            margin-bottom: 5px;
+            background: #bdc3c7;
+            border-radius: 5px;
+            text-decoration: none;
+            color: black;
+        }
+
+        .menu a:hover {
+            background: #d0d6db;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 6px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 6px;
+            color: #34495e;
+        }
+
+        .section-body {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .section-body ul {
+            padding-left: 20px;
+        }
+
+        pre, code {
+            background: #f2f4f6;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        pre {
+            overflow-x: auto;
+        }
+
+        .info-box {
+            background: #f9fbff;
+            padding: 10px 12px;
+            border: 1px solid #d6e4ff;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        SQLi Learning
+        <div class="header-sub">イントロダクション &gt; 学習上の注意
+        </div>
+            <div id="menu" class="menu">
+                <a href="/">ホーム</a>
+                <a href="/login">ログイン画面</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+    <div class="card-title">学習上の注意</div>
+    <div class="card-subtitle">安全に学習するために必ず理解しておくべきポイント</div>
+
+    <div class="section-title">1. このアプリは “あくまで学習用” です</div>
+    <div class="section-body">
+        このアプリで扱う SQL インジェクション攻撃は、
+        セキュリティ教育を目的としており、<strong>安全なローカル環境</strong>でのみ使用してください。
+        インターネット上の実際のサービスに対して使用することは厳禁です。
+    </div>
+
+    <div class="section-title">2. 実サービスへの攻撃は犯罪です</div>
+    <div class="section-body">
+        日本では「不正アクセス禁止法」により、
+        許可のないシステムに対して脆弱性を探したり、攻撃を試す行為は違法です。
+        <br><br>
+        <strong>本アプリの攻撃手法を実システムに対して絶対に使用しないでください。</strong>
+    </div>
+
+    <div class="section-title">3. 学習環境は必ずローカル or 許可されたサーバ</div>
+    <div class="section-body">
+        SQL インジェクション攻撃はデータベースを破壊する可能性があります。
+        次のような環境以外では絶対に試さないでください：
+        <ul>
+            <li>自分の PC（ローカル環境）</li>
+            <li>教師・管理者から許可を得た学習用環境</li>
+            <li>コンテスト・演習用に提供された環境</li>
+        </ul>
+        会社・大学・外部のサーバに誤って実行しないよう注意してください。
+    </div>
+
+    <div class="section-title">4. 実験データは破壊される可能性があります</div>
+    <div class="section-body">
+        SQLインジェクションはデータを削除・書き換える攻撃が容易です。
+        学習用 DB は <strong>消えても構わないデータ</strong> に限定してください。
+        <br><br>
+        重要な個人情報や業務データを含む DB は絶対に対象にしないでください。
+    </div>
+
+    <div class="section-title">5. 攻撃内容を他者にむやみに共有しない</div>
+    <div class="section-body">
+        本アプリで学ぶ攻撃方法は強力なものです。
+        <ul>
+            <li>悪意ある目的での利用</li>
+            <li>他者への無許可の攻撃</li>
+            <li>SNS での具体的な攻撃手法の公開</li>
+        </ul>
+        などはトラブルにつながり、法的責任を問われる可能性があります。
+    </div>
+
+    <div class="section-title">6. セキュリティは “守る” ために学ぶ</div>
+    <div class="section-body">
+        このアプリの目的は攻撃することではなく、  
+        <strong>攻撃を理解し、防御方法を学ぶこと</strong>です。
+        <br><br>
+        攻撃の知識は、適切な対策を行うために利用してください。
+    </div>
+
+    <div class="section-title">7. 不明点や疑問点はそのままにしない</div>
+    <div class="section-body">
+        SQL インジェクションは奥が深いテーマです。
+        理解が曖昧なまま進むと、誤った知識が身についてしまいます。
+        <ul>
+            <li>なぜ攻撃が成立するのか？</li>
+            <li>どの部分が脆弱なのか？</li>
+            <li>どのように修正すべきなのか？</li>
+        </ul>
+        など、疑問点がある場合は必ず調べたり、質問したりして解決しましょう。
+    </div>
+
+    <div class="section-title">まとめ</div>
+    <div class="section-body">
+        このアプリは、SQLインジェクションを安全に、体系的に学べる環境です。  
+        しかしその知識を利用する際には、常に <strong>倫理・法律・安全</strong> を意識する必要があります。
+        <br><br>
+        <strong>「攻撃のためではなく、防御のために学ぶ」</strong>  
+        この姿勢を忘れずに進めていきましょう。
+    </div>
+</div>
+
+
+    <script>
+        function toggle(id) {
+            const box = document.getElementById(id);
+            box.style.display = (box.style.display === "block") ? "none" : "block";
+        }
+    </script>
+
+<div style="text-align:center; margin-top: 20px;">
+    <a href="/home"
+       style="
+           display:inline-block;
+           background:#3498db;
+           color:white;
+           padding:10px 20px;
+           border-radius:6px;
+           text-decoration:none;
+           font-size:16px;
+           margin-bottom: 20px;
+       ">
+        ← ホームに戻る
+    </a>
+</div>
+
+</body>
+</html>

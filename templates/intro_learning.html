@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>イントロダクション：SQL基礎</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0px;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            font-weight: normal;
+            color: #bdc3c7;
+            margin-top: 4px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 25px auto 40px;
+            padding: 0 15px;
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+            gap: 20px;
+        }
+
+        
+        .menu {
+            display: none;
+            position: absolute;
+            right: 20px;
+            top: 50px;
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            width: 180px;
+        }
+
+        .menu a {
+            display: block;
+            padding: 10px;
+            margin-bottom: 5px;
+            background: #bdc3c7;
+            border-radius: 5px;
+            text-decoration: none;
+            color: black;
+        }
+
+        .menu a:hover {
+            background: #d0d6db;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 6px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 6px;
+            color: #34495e;
+        }
+
+        .section-body {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .section-body ul {
+            padding-left: 20px;
+        }
+
+        pre, code {
+            background: #f2f4f6;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        pre {
+            overflow-x: auto;
+        }
+
+        .info-box {
+            background: #f9fbff;
+            padding: 10px 12px;
+            border: 1px solid #d6e4ff;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        SQLi Learning
+        <div class="header-sub">イントロダクション &gt; このアプリで学べること
+        </div>
+            <div id="menu" class="menu">
+                <a href="/">ホーム</a>
+                <a href="/login">ログイン画面</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+    <div class="card-title">このアプリで学べること</div>
+    <div class="card-subtitle">SQLインジェクションを中心とした Web セキュリティ基礎を体系的に学ぶ</div>
+
+    <div class="section-title">1. SQLインジェクションの基礎理解</div>
+    <div class="section-body">
+        このアプリでは、脆弱な Web アプリケーションを実際に操作しながら、
+        <strong>SQLインジェクションがどのように成立し、どう悪用されるか</strong>
+        を体験できます。
+        <br><br>
+        基礎となる攻撃手法：
+        <ul>
+            <li>認証回避（ログイン突破）</li>
+            <li>データ抽出（情報漏えい）</li>
+            <li>UNION攻撃</li>
+            <li>エラーベースSQLi</li>
+            <li>ブラインドSQLi（True/False／時間差）</li>
+        </ul>
+    </div>
+
+    <div class="section-title">2. 脆弱なコードの読み方（静的解析の基礎）</div>
+    <div class="section-body">
+        SQLインジェクションは「コードの書き方」が原因です。
+        このアプリでは、脆弱コードを読み解きながら、
+        <strong>どこが危ないのかを見抜く力</strong> を身につけます。
+        <ul>
+            <li>ユーザー入力の取得箇所（source）</li>
+            <li>SQL実行箇所（sink）</li>
+            <li>文字列連結による危険性</li>
+            <li>安全なパラメータバインドの書き方</li>
+        </ul>
+        また、後半ではあなたが実装する静的解析ツールとも連携できる構造です。
+    </div>
+
+    <div class="section-title">3. 動的解析（実際に攻撃を送り結果を検出）</div>
+    <div class="section-body">
+        SQLインジェクションは、レスポンスの変化から検出できます。
+        演習では次の動的解析手法を体験します：
+        <ul>
+            <li>ステータスコードの変化（200 → 500など）</li>
+            <li>レスポンス長の変動</li>
+            <li>エラーメッセージの露出</li>
+            <li>時間差（Time-based Blind SQLi）</li>
+        </ul>
+        実際の診断ツール（SQLMap など）が使用している原理を理解できます。
+    </div>
+
+    <div class="section-title">4. 安全なコードの書き方（対策編）</div>
+    <div class="section-body">
+        最後に、SQLインジェクションを防ぐための
+        <strong>安全な SQL の書き方（Prepared Statement）</strong> を学びます。
+        <ul>
+            <li>パラメトリクエリの使い方</li>
+            <li>ORM（SQLAlchemy）の活用</li>
+            <li>エラーをユーザに表示しない設計</li>
+            <li>適切なアクセス制御</li>
+        </ul>
+        「脆弱 → 攻撃 → 検出 → 修正」という流れで理解が深まります。
+    </div>
+
+    <div class="section-title">5. 実践的なセキュリティ思考</div>
+    <div class="section-body">
+        このアプリで得られるのは技術だけではありません。
+        Web開発におけるセキュリティの考え方も身に付きます：
+        <ul>
+            <li>なぜセキュリティは「後付け」では危険なのか？</li>
+            <li>小さなコードのミスがなぜ大きな事故になるのか？</li>
+            <li>攻撃者はどのようにアプリを見ているのか？</li>
+            <li>「安全に書く」ことを習慣化する重要性</li>
+        </ul>
+        これらは現場のエンジニアとして必須の視点です。
+    </div>
+
+    <div class="section-title">6. このアプリの学習の流れ</div>
+    <div class="section-body">
+        本アプリは、次の学習ステップで構成されています：
+        <ol>
+            <li><b>基礎知識</b>：SQLと脆弱性の原理</li>
+            <li><b>攻撃体験</b>：ログイン、検索、URLパラメータなど</li>
+            <li><b>静的解析</b>：脆弱なコードを見抜く</li>
+            <li><b>動的解析</b>：差分で攻撃を検出</li>
+            <li><b>安全な実装</b>：Prepared Statementで修正</li>
+        </ol>
+
+        理論 → 体験 → 分析 → 修正  
+        という流れを実際に触りながら学べる仕組みです。
+    </div>
+
+    <div class="section-title">まとめ</div>
+    <div class="section-body">
+        このアプリは「攻撃 → 検出 → 防御」の流れを対話的に学べるように設計されています。
+        <br>
+        <strong>Webセキュリティを理解する最短ルート</strong>として、卒論レベルでも十分な内容を提供します。
+    </div>
+</div>
+
+
+    <script>
+        function toggle(id) {
+            const box = document.getElementById(id);
+            box.style.display = (box.style.display === "block") ? "none" : "block";
+        }
+    </script>
+
+<div style="text-align:center; margin-top: 20px;">
+    <a href="/home"
+       style="
+           display:inline-block;
+           background:#3498db;
+           color:white;
+           padding:10px 20px;
+           border-radius:6px;
+           text-decoration:none;
+           font-size:16px;
+           margin-bottom: 20px;
+       ">
+        ← ホームに戻る
+    </a>
+</div>
+
+</body>
+</html>

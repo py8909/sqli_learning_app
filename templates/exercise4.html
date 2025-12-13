@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>演習4：エラーベース SQLインジェクション</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ----- ヘッダー ----- */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            font-weight: normal;
+            color: #bdc3c7;
+            margin-top: 4px;
+        }
+
+        /* ----- 全体レイアウト ----- */
+        .container {
+            max-width: 1100px;
+            margin: 25px auto 40px;
+            padding: 0 15px;
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+            gap: 20px;
+        }
+
+        /* ----- カード ----- */
+        .card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #ecf0f1;
+            color: #555;
+            margin-right: 6px;
+        }
+
+        /* セクション */
+        .section-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            color: #34495e;
+        }
+
+        .section-body {
+            font-size: 13px;
+            color: #444;
+            line-height: 1.6;
+        }
+
+        .section-body ul {
+            padding-left: 18px;
+            margin: 4px 0 8px;
+        }
+
+        pre.code-block {
+            background: #f2f4f6;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-x: auto;
+        }
+
+
+        /* ----- ヒント ----- */
+        .hint-box {
+            background: #f9fbff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid #d6e4ff;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .hint-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .hint-title {
+            font-weight: bold;
+            font-size: 13px;
+            color: #2c3e50;
+        }
+
+        .hint-toggle {
+            font-size: 18px;
+        }
+
+        .hint-content {
+            margin-top: 6px;
+            display: none;
+        }
+
+        code {
+            background: #f2f4f6;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        pre {
+            background:#f2f4f6;
+            padding:8px 10px;
+            border-radius:6px;
+            font-size:12px;
+            overflow-x:auto;
+        }
+
+        /* フォーム */
+        .form-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: #34495e;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccd1d9;
+            font-size: 13px;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.12);
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-primary:hover { background: #2980b9; }
+
+        .alert-info {
+            background: #ecf7ff;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 12px;
+            color: #2c3e50;
+            margin-top: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container { grid-template-columns: minmax(0, 1fr); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ヘッダー -->
+    <div class="header">
+        SQLi Learning
+        <div class="header-sub">演習メニュー &gt; エラーベース SQLインジェクション体験</div>
+    </div>
+
+    <div class="container">
+
+        <!-- 左：説明カード -->
+        <div class="card">
+            <div class="card-title">演習4：エラーベース SQLインジェクション攻撃を体験しよう</div>
+            <div class="card-subtitle">
+                <span class="badge">難易度：★☆☆（初級）</span>
+                <span class="badge">対象：構文エラー／カラム数エラー</span>
+            </div>
+
+            <div class="section-title">1. 演習の目的</div>
+            <div class="section-body">
+                SQLのエラーメッセージを利用して内部情報を引き出す  
+                <strong>エラーベース SQLインジェクション</strong> を体験します。
+            </div>
+
+            <div class="section-title">2. 想定される脆弱な実装</div>
+            <pre class="code-block">
+q = request.args.get("q", "")
+query = "SELECT * FROM items WHERE name LIKE '%" + q + "%'"
+cursor.execute(query)
+            </pre>
+
+            <div class="section-title">3. やってみよう</div>
+            <div class="section-body">
+                以下を試してみましょう：
+                <ul>
+                    <li><code>'</code>（構文エラー）</li>
+                    <li><code>' OR '1'='1</code></li>
+                    <li><code>' UNION SELECT 1 --</code></li>
+                    <li><code>' UNION SELECT name, sql FROM sqlite_master --</code></li>
+                </ul>
+            </div>
+
+            <!-- ヒント -->
+            <div class="hint-box">
+                <div class="hint-header" onclick="toggleHint()">
+                    <div class="hint-title">ヒントを見る（クリックで展開）</div>
+                    <div class="hint-toggle" id="hint-toggle-symbol">＋</div>
+                </div>
+                <div class="hint-content" id="hint-content">
+                    <p>● エラーは攻撃者への“メッセージ”になる</p>
+                    <ul>
+                        <li>構文エラー → クォートの有無がわかる</li>
+                        <li>カラム数エラー → UNION の列数が推測できる</li>
+                        <li>UNIONエラー → UNION攻撃が使えるか判別</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-title">4. 学習のポイント</div>
+            <div class="section-body">
+                <ul>
+                    <li>・エラーメッセージは攻撃者に情報を与える</li>
+                    <li>・安全なアプリは内部エラーを露出しない</li>
+                    <li>・Prepared Statement がエラー防御にも有効</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 右：フォーム -->
+        <div class="card">
+            <div class="card-title">エラーベース SQLi（演習用フォーム）</div>
+            <div class="card-subtitle">
+                GET /error_test?q=… に送信されます。
+            </div>
+
+            <form action="/error_test" method="get">
+                <div class="form-group">
+                    <label for="q">クエリ入力</label>
+                    <input type="text" id="q" name="q" placeholder="例：" autocomplete="off">
+                </div>
+
+                <button type="submit" class="btn-primary">送信</button>
+            </form>
+        </div>
+
+    </div>
+
+    <script>
+        function toggleHint() {
+            const content = document.getElementById("hint-content");
+            const symbol = document.getElementById("hint-toggle-symbol");
+
+            if (content.style.display === "block") {
+                content.style.display = "none";
+                symbol.textContent = "＋";
+            } else {
+                content.style.display = "block";
+                symbol.textContent = "－";
+            }
+        }
+    </script>
+
+<div style="text-align:center; margin-top: 20px;">
+    <a href="/home"
+       style="
+           display:inline-block;
+           background:#3498db;
+           color:white;
+           padding:10px 20px;
+           border-radius:6px;
+           text-decoration:none;
+           font-size:16px;
+           margin-bottom: 20px;
+       ">
+        ← ホームに戻る
+    </a>
+</div>
+
+</body>
+</html>
