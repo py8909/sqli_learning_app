@@ -39,7 +39,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False, index=True)
     password = db.Column(db.String(255), nullable=False)
-    #is_admin = db.Column(db.Boolean, nullable=False, default=False)#
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)#
 
 class Progress(db.Model):
     __tablename__ = "progress"
@@ -147,6 +147,25 @@ def admin_dashboard():
 
     return render_template("admin.html", data=data)
 
+@app.route("/admin/promote", methods=["POST"])
+def promote_admin():
+    if "user" not in session:
+        abort(403)
+
+    admin_username = os.environ.get("ADMIN_USERNAME")
+    if not admin_username or session["user"] != admin_username:
+        abort(403)
+
+    user = User.query.filter_by(username=session["user"]).first()
+    if not user:
+        abort(404)
+
+    if not user.is_admin:
+        user.is_admin = True
+        db.session.commit()
+
+    flash("管理者に昇格しました")
+    return redirect("/admin")
 
 @app.route("/profile", methods=["GET", "POST"])
 def profile():
