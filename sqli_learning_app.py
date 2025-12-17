@@ -47,6 +47,25 @@ class Progress(db.Model):
     exercise = db.Column(db.String(100), primary_key=True)
     done = db.Column(db.Boolean, nullable=False, default=False)
 
+def admin_required():
+    if "user" not in session:
+        return False
+    user = User.query.filter_by(username=session["user"]).first()
+    return user and user.is_admin
+
+def setup_admin_user():
+    admin_username = os.environ.get("ADMIN_USERNAME")
+    if not admin_username:
+        return
+
+    try:
+        user = User.query.filter_by(username=admin_username).first()
+        if user and not user.is_admin:
+            user.is_admin = True
+            db.session.commit()
+    except OperationalError:
+        # DB がまだ準備できていない場合は無視
+        pass
 # ============================================================
 # Routes
 # ============================================================
@@ -121,7 +140,7 @@ def admin_dashboard():
             "total": total
         })
     data.sort(key=lambda x: x["username"].lower())
-    
+
     return render_template("admin.html", data=data)
 
 
@@ -290,36 +309,6 @@ def exercise9():
 def logout():
     session.clear()
     return redirect("/login")
-
-def admin_required():
-    if "user" not in session:
-        return False
-    user = User.query.filter_by(username=session["user"]).first()
-    return user and user.is_admin
-
-def setup_admin_user():
-    username = os.environ.get("ADMIN_USERNAME")
-    password = os.environ.get("ADMIN_PASSWORD")
-
-    if not username or not password:
-        return
-
-    try:
-        user = User.query.filter_by(username=username).first()
-        if not user:
-            user = User(
-                username=username,
-                password=generate_password_hash(password),
-                is_admin=True
-            )
-            db.session.add(user)
-        else:
-            user.is_admin = True
-
-        db.session.commit()
-    except OperationalError:
-        pass
-
 
 with app.app_context():
     setup_admin_user()
