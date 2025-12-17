@@ -39,7 +39,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False, index=True)
     password = db.Column(db.String(255), nullable=False)
-    is_admin = db.Column(db.Boolean, nullable=False, default=False)
+    #is_admin = db.Column(db.Boolean, nullable=False, default=False)#
 
 class Progress(db.Model):
     __tablename__ = "progress"
