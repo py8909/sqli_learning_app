@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>管理者ダッシュボード</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fa; }
+    .header { background: #2c3e50; color: #fff; padding: 14px 18px; font-size: 20px; }
+    .container { max-width: 980px; margin: 18px auto; padding: 0 14px; }
+    .note { background: #fff; border-radius: 10px; padding: 12px 14px; box-shadow: 0 2px 10px rgba(0,0,0,.06); margin-bottom: 14px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e8eef5; text-align: left; }
+    th { background: #eef3f8; font-weight: bold; }
+    .muted { color: #6b7b8c; font-size: 12px; }
+    .btns { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+    a.btn {
+      display: inline-block; padding: 10px 12px; background: #3498db; color: #fff;
+      text-decoration: none; border-radius: 8px; font-weight: bold;
+    }
+    a.btn.secondary { background: #7f8c8d; }
+    .badge { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#ecf0f1; }
+  </style>
+</head>
+<body>
+  <div class="header">管理者ダッシュボード</div>
+
+  <div class="container">
+    <div class="note">
+      <div><strong>全ユーザーの学習進捗</strong></div>
+      <div class="muted">完了数 = done=True の件数 / 登録タスク数 = progress テーブルに存在する件数</div>
+      <div class="btns">
+        <a class="btn secondary" href="/home">ホームへ戻る</a>
+        <a class="btn" href="/logout">ログアウト</a>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ユーザー名</th>
+          <th>完了数</th>
+          <th>登録タスク数</th>
+          <th>達成率</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data %}
+        <tr>
+          <td>{{ row.username }}</td>
+          <td><span class="badge">{{ row.done }}</span></td>
+          <td><span class="badge">{{ row.total }}</span></td>
+          <td>
+            {% if row.total and row.total > 0 %}
+              {{ ((row.done / row.total) * 100) | round(0) }}%
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if data|length == 0 %}
+        <tr>
+          <td colspan="4" class="muted">ユーザーがまだいません。</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
