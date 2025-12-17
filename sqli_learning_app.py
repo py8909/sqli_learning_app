@@ -109,19 +109,18 @@ def login():
             flash("ユーザー名が存在しません")
             return redirect("/login")
 
-            # ★ ここを追加（重要）
-            admin_username = os.environ.get("ADMIN_USERNAME")
-            if admin_username and user.username == admin_username and not user.is_admin:
-                try:
-                    user.is_admin = True
-                    db.session.commit()
-                except OperationalError:
-                    pass
+        if not check_password_hash(user.password, password):
+            flash("パスワードが違います")
+            return redirect("/login")
 
-        flash("パスワードが違います")
-        return redirect("/login")
+        # --- ログイン成功 ---
+        session.clear()
+        session["user"] = user.username
+
+        return redirect("/home")
 
     return render_template("login.html")
+
 
 
 @app.route("/admin")
