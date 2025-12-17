@@ -112,12 +112,23 @@ def login():
         if check_password_hash(user.password, password):
             session.clear()
             session["user"] = user.username
+
+            # ★ ここを追加（重要）
+            admin_username = os.environ.get("ADMIN_USERNAME")
+            if admin_username and user.username == admin_username and not user.is_admin:
+                try:
+                    user.is_admin = True
+                    db.session.commit()
+                except OperationalError:
+                    pass
+
             return redirect("/home")
 
         flash("パスワードが違います")
         return redirect("/login")
 
     return render_template("login.html")
+
 
 @app.route("/admin")
 def admin_dashboard():
@@ -309,9 +320,6 @@ def exercise9():
 def logout():
     session.clear()
     return redirect("/login")
-
-with app.app_context():
-    setup_admin_user()
 
 if __name__ == "__main__":
     app.run()
