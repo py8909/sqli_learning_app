@@ -5,7 +5,7 @@ from flask_migrate import Migrate
 from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy.exc import OperationalError
 from collections import defaultdict
-from sqlalchemy import func
+from sqlalchemy import func, case
 
 
 app = Flask(__name__)
@@ -186,7 +186,7 @@ def admin_dashboard():
             QuizAnswer.question_id,
             func.count(QuizAnswer.id).label("total"),
             func.sum(
-                func.case(
+                case(
                     (QuizAnswer.is_correct == False, 1),
                     else_=0
                 )
