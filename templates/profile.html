@@ -194,12 +194,4 @@
 
 </body>
 </html>
-<hr>
-<p>session.user = {{ session.user }}</p>
-<p>ADMIN_USERNAME = {{ ADMIN_USERNAME }}</p>
-{% if "user" in session and ADMIN_USERNAME and session["user"] == ADMIN_USERNAME %}
-<hr>
-<form method="POST" action="/admin/promote">
-    <button type="submit">管理者になる</button>
-</form>
-{% endif %}
+
