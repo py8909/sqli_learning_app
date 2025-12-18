@@ -39,7 +39,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False, index=True)
     password = db.Column(db.String(255), nullable=False)
-    is_admin = db.Column(db.Boolean, nullable=False, default=False)#
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
 
 class Progress(db.Model):
     __tablename__ = "progress"
@@ -48,24 +48,8 @@ class Progress(db.Model):
     done = db.Column(db.Boolean, nullable=False, default=False)
 
 def admin_required():
-    #if "user" not in session:
-        return False
-    #user = User.query.filter_by(username=session["user"]).first()
-    #return user and user.is_admin
+    return False
 
-def setup_admin_user():
-    admin_username = os.environ.get("ADMIN_USERNAME")
-    if not admin_username:
-        return
-
-    try:
-        user = User.query.filter_by(username=admin_username).first()
-        if user and not user.is_admin:
-            user.is_admin = True
-            db.session.commit()
-    except OperationalError:
-        # DB がまだ準備できていない場合は無視
-        pass
 # ============================================================
 # Routes
 # ============================================================
@@ -113,40 +97,15 @@ def login():
             flash("パスワードが違います")
             return redirect("/login")
 
-        # --- ログイン成功 ---
         session.clear()
         session["user"] = user.username
-
         return redirect("/home")
 
     return render_template("login.html")
 
-
-
 @app.route("/admin")
 def admin_dashboard():
     abort(403)
-"""      return redirect("/login")
-
-    if not admin_required():
-        abort(403)
-
-    users = User.query.all()
-    data = []
-
-    for u in users:
-        done = Progress.query.filter_by(user_id=u.id, done=True).count()
-        total = Progress.query.filter_by(user_id=u.id).count()
-
-        data.append({
-            "username": u.username,
-            "done": done,
-            "total": total
-        })
-    data.sort(key=lambda x: x["username"].lower())
-
-    return render_template("admin.html", data=data)
-"""
 
 @app.route("/admin/promote", methods=["POST"])
 def promote_admin():
@@ -336,3 +295,6 @@ def logout():
 
 if __name__ == "__main__":
     app.run()
+
+with app.app_context():
+    db.create_all()
