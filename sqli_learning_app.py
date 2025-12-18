@@ -109,7 +109,25 @@ def login():
 
 @app.route("/admin")
 def admin_dashboard():
-    abort(403)
+    if not admin_required():
+        abort(403)
+
+    users = User.query.all()
+    data = []
+
+    for u in users:
+        done = Progress.query.filter_by(user_id=u.id, done=True).count()
+        total = Progress.query.filter_by(user_id=u.id).count()
+
+        data.append({
+            "username": u.username,
+            "done": done,
+            "total": total
+        })
+
+    data.sort(key=lambda x: x["username"].lower())
+    return render_template("admin.html", data=data)
+
 
 @app.route("/admin/promote", methods=["POST"])
 def promote_admin():
@@ -299,6 +317,3 @@ def logout():
 
 if __name__ == "__main__":
     app.run()
-
-with app.app_context():
-    db.create_all()
