@@ -129,9 +129,29 @@ def admin_dashboard():
     return render_template("admin.html", data=data)
 
 
-@app.route("/admin/promote", methods=["POST"])
-def promote_admin():
-    abort(403)
+@app.route("/admin")
+def admin_dashboard():
+    if not admin_required():
+        abort(403)
+
+    users = User.query.all()
+    data = []
+
+    for u in users:
+        done = Progress.query.filter_by(user_id=u.id, done=True).count()
+        total = Progress.query.filter_by(user_id=u.id).count()
+        rate = round(done / total * 100, 1) if total > 0 else 0.0
+
+        data.append({
+            "username": u.username,
+            "done": done,
+            "total": total,
+            "rate": rate
+        })
+
+    data.sort(key=lambda x: x["username"].lower())
+    return render_template("admin.html", data=data)
+
 
 
 @app.route("/profile", methods=["GET", "POST"])
