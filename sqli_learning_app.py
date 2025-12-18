@@ -48,10 +48,10 @@ class Progress(db.Model):
     done = db.Column(db.Boolean, nullable=False, default=False)
 
 def admin_required():
-    if "user" not in session:
+    #if "user" not in session:
         return False
-    user = User.query.filter_by(username=session["user"]).first()
-    return user and user.is_admin
+    #user = User.query.filter_by(username=session["user"]).first()
+    #return user and user.is_admin
 
 def setup_admin_user():
     admin_username = os.environ.get("ADMIN_USERNAME")
@@ -125,8 +125,8 @@ def login():
 
 @app.route("/admin")
 def admin_dashboard():
-    if "user" not in session:
-        return redirect("/login")
+    abort(403)
+"""      return redirect("/login")
 
     if not admin_required():
         abort(403)
@@ -146,6 +146,7 @@ def admin_dashboard():
     data.sort(key=lambda x: x["username"].lower())
 
     return render_template("admin.html", data=data)
+"""
 
 @app.route("/admin/promote", methods=["POST"])
 def promote_admin():
