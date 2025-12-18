@@ -48,6 +48,23 @@ class Progress(db.Model):
     exercise = db.Column(db.String(100), primary_key=True)
     done = db.Column(db.Boolean, nullable=False, default=False)
 
+class QuizAttempt(db.Model):
+    __tablename__ = "quiz_attempts"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    quiz_id = db.Column(db.String(50), nullable=False)   # 例: "quiz_sql_basics"
+    attempt_no = db.Column(db.Integer, nullable=False)
+    score = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+class QuizAnswer(db.Model):
+    __tablename__ = "quiz_answers"
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_id = db.Column(db.Integer, db.ForeignKey("quiz_attempts.id"), nullable=False)
+    question_id = db.Column(db.String(50), nullable=False)
+    is_correct = db.Column(db.Boolean, nullable=False)
+
+
 def admin_required():
     if "user" not in session:
         return False
@@ -161,11 +178,42 @@ def admin_dashboard():
 
     category_data.sort(key=lambda x: x["category"])
 
-    return render_template(
-        "admin.html",
-        users=user_data,
-        categories=category_data
+    # --- 問題別誤答率（研究用） ---
+    question_stats = (
+        db.session.query(
+            QuizAnswer.question_id,
+            func.count(QuizAnswer.id).label("total"),
+            func.sum(
+                func.case(
+                    (QuizAnswer.is_correct == False, 1),
+                    else_=0
+                )
+            ).label("wrong")
+        )
+        .group_by(QuizAnswer.question_id)
+        .all()
     )
+
+    question_data = []
+    for qid, total, wrong in question_stats:
+        rate = round(wrong / total * 100, 1) if total > 0 else 0.0
+        question_data.append({
+            "question_id": qid,
+            "total": total,
+            "wrong": wrong,
+            "rate": rate
+        })
+
+    question_data.sort(key=lambda x: x["rate"], reverse=True)
+
+    return render_template(
+    "admin.html",
+    users=user_data,
+    categories=category_data,
+    questions=question_data
+    )
+
+
 
 
 
@@ -273,6 +321,79 @@ def set_achievement(exercise):
     db.session.commit()
     return {"status": "ok"}
 
+@app.route("/quiz/submit", methods=["POST"])
+def submit_quiz():
+    if "user" not in session:
+        abort(403)
+
+    user = User.query.filter_by(username=session["user"]).first()
+    quiz_id = "quiz_sql_basics"
+
+    # 試行回数
+    attempt_no = QuizAttempt.query.filter_by(
+        user_id=user.id, quiz_id=quiz_id
+    ).count() + 1
+
+    # 採点
+    answers = request.form
+    score = 0
+
+    attempt = QuizAttempt(
+        user_id=user.id,
+        quiz_id=quiz_id,
+        attempt_no=attempt_no,
+        score=0
+    )
+    db.session.add(attempt)
+    db.session.flush()  # attempt.id を取得
+
+    for qid, correct in QUIZ_ANSWER_KEY.items():
+        user_ans = answers.get(qid)
+        is_correct = (user_ans == correct)
+        if is_correct:
+            score += 1
+
+        db.session.add(QuizAnswer(
+            attempt_id=attempt.id,
+            question_id=qid,
+            is_correct=is_correct
+        ))
+
+    attempt.score = score
+    db.session.commit()
+
+    return redirect("/quiz/result")
+
+@app.route("/admin/user/<username>")
+def admin_user_detail(username):
+    if not admin_required():
+        abort(403)
+
+    user = User.query.filter_by(username=username).first_or_404()
+
+    # タスク進捗
+    progress = Progress.query.filter_by(user_id=user.id).all()
+
+    # クイズ試行
+    attempts = QuizAttempt.query.filter_by(user_id=user.id).all()
+
+    # 誤答
+    answers = (
+        db.session.query(QuizAnswer)
+        .join(QuizAttempt)
+        .filter(QuizAttempt.user_id == user.id, QuizAnswer.is_correct == False)
+        .all()
+    )
+
+    return render_template(
+        "admin_user_detail.html",
+        user=user,
+        progress=progress,
+        attempts=attempts,
+        wrong_answers=answers
+    )
+
+
 # --- intro pages ---
 @app.route("/intro_sql")
 def intro_sql():
@@ -342,3 +463,6 @@ def inject_admin_username():
 
 if __name__ == "__main__":
     app.run()
+
+with app.app_context():
+    db.create_all()

@@ -126,25 +126,26 @@
       </tbody>
     </table>
   </div>
+  <h2>問題別 誤答率ランキング</h2>
 
-  <h2>SQL Injection Type Analysis</h2>
+  <table border="1" cellpadding="8">
+    <tr>
+      <th>Question ID</th>
+      <th>Total Answers</th>
+      <th>Wrong Answers</th>
+      <th>Error Rate (%)</th>
+    </tr>
 
-<table border="1" cellpadding="8">
-  <tr>
-    <th>SQLi Type</th>
-    <th>Done</th>
-    <th>Total</th>
-    <th>Completion Rate (%)</th>
-  </tr>
-  {% for c in categories %}
-  <tr>
-    <td>{{ c.category }}</td>
-    <td>{{ c.done }}</td>
-    <td>{{ c.total }}</td>
-    <td>{{ c.rate }}%</td>
-  </tr>
-  {% endfor %}
+    {% for q in questions %}
+    <tr>
+      <td>{{ q.question_id }}</td>
+      <td>{{ q.total }}</td>
+      <td>{{ q.wrong }}</td>
+      <td>{{ q.rate }}%</td>
+    </tr>
+    {% endfor %}
 </table>
+
 
 </body>
 </html>

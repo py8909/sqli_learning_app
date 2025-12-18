@@ -1,0 +1,27 @@
+<h2>{{ user.username }} - 学習詳細</h2>
+
+<h3>完了タスク</h3>
+<ul>
+  {% for p in progress %}
+    <li>{{ p.exercise }} : {{ "✔" if p.done else "✘" }}</li>
+  {% endfor %}
+</ul>
+
+<h3>テスト試行</h3>
+<table border="1">
+<tr><th>Quiz</th><th>Attempt</th><th>Score</th></tr>
+{% for a in attempts %}
+<tr>
+  <td>{{ a.quiz_id }}</td>
+  <td>{{ a.attempt_no }}</td>
+  <td>{{ a.score }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<h3>間違えた問題</h3>
+<ul>
+{% for w in wrong_answers %}
+  <li>Question: {{ w.question_id }}</li>
+{% endfor %}
+</ul>
