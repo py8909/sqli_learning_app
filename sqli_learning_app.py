@@ -5,6 +5,8 @@ from flask_migrate import Migrate
 from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy.exc import OperationalError
 from collections import defaultdict
+from sqlalchemy import func
+
 
 app = Flask(__name__)
 
@@ -212,11 +214,6 @@ def admin_dashboard():
     categories=category_data,
     questions=question_data
     )
-
-
-
-
-
 
 @app.route("/profile", methods=["GET", "POST"])
 def profile():
