@@ -48,7 +48,11 @@ class Progress(db.Model):
     done = db.Column(db.Boolean, nullable=False, default=False)
 
 def admin_required():
-    return False
+    if "user" not in session:
+        return False
+    user = User.query.filter_by(username=session["user"]).first()
+    return user and user.is_admin
+
 
 # ============================================================
 # Routes
