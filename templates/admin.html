@@ -107,19 +107,13 @@
           <td>{{ row.username }}</td>
           <td><span class="badge">{{ row.done }}</span></td>
           <td><span class="badge">{{ row.total }}</span></td>
-          <td style="
-            font-weight: bold;
-            color:
-              {% if row.rate >= 80 %}#27ae60
-              {% elif row.rate >= 50 %}#f39c12
-              {% else %}#c0392b
-              {% endif %}
+          <td class="
+          {% if row.rate >= 80 %}rate-high
+          {% elif row.rate >= 50 %}rate-mid
+          {% else %}rate-low
+          {% endif %}
           ">
-            {% if row.rate is not none %}
-              {{ row.rate }}%
-            {% else %}
-              -
-            {% endif %}
+            {{ row.rate if row.rate is not none else "-" }}%
           </td>
         </tr>
         {% endfor %}
