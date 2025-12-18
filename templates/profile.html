@@ -197,7 +197,7 @@
 <hr>
 <p>session.user = {{ session.user }}</p>
 <p>ADMIN_USERNAME = {{ ADMIN_USERNAME }}</p>
-{% if session.user == config["ADMIN_USERNAME"] %}
+{% if "user" in session and ADMIN_USERNAME and session["user"] == ADMIN_USERNAME %}
 <hr>
 <form method="POST" action="/admin/promote">
     <button type="submit">管理者になる</button>
