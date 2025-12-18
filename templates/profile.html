@@ -195,3 +195,9 @@
 </body>
 </html>
 
+{% if session.user == config["ADMIN_USERNAME"] %}
+<hr>
+<form method="POST" action="/admin/promote">
+    <button type="submit">管理者になる</button>
+</form>
+{% endif %}

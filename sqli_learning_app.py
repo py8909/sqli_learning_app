@@ -315,5 +315,9 @@ def logout():
     session.clear()
     return redirect("/login")
 
+@app.context_processor
+def inject_admin_username():
+    return dict(ADMIN_USERNAME=os.environ.get("ADMIN_USERNAME"))
+
 if __name__ == "__main__":
     app.run()
