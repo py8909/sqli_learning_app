@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy.exc import OperationalError
+from collections import defaultdict
 
 app = Flask(__name__)
 
@@ -53,6 +54,17 @@ def admin_required():
     user = User.query.filter_by(username=session["user"]).first()
     return user and user.is_admin
 
+EXERCISE_CATEGORY = {
+    "exercise1": "Login-based SQLi",
+    "exercise2": "Search SQLi",
+    "exercise3": "URL Parameter SQLi",
+    "exercise4": "Error-based SQLi",
+    "exercise5": "Blind SQLi",
+    "exercise6": "Static Analysis",
+    "exercise7": "Dynamic Analysis",
+    "exercise8": "Defense (Prepared Statements)",
+    "exercise9": "Comprehension Quiz",
+}
 
 # ============================================================
 # Routes
@@ -113,22 +125,48 @@ def admin_dashboard():
         abort(403)
 
     users = User.query.all()
-    data = []
+    user_data = []
 
+    # --- ユーザー別集計 ---
     for u in users:
         done = Progress.query.filter_by(user_id=u.id, done=True).count()
         total = Progress.query.filter_by(user_id=u.id).count()
         rate = round(done / total * 100, 1) if total > 0 else 0.0
 
-        data.append({
+        user_data.append({
             "username": u.username,
             "done": done,
             "total": total,
             "rate": rate
         })
 
-    data.sort(key=lambda x: x["username"].lower())
-    return render_template("admin.html", data=data)
+    # --- カテゴリ別集計（研究の核） ---
+    category_stats = defaultdict(lambda: {"done": 0, "total": 0})
+
+    for p in Progress.query.all():
+        category = EXERCISE_CATEGORY.get(p.exercise, "Unknown")
+        category_stats[category]["total"] += 1
+        if p.done:
+            category_stats[category]["done"] += 1
+
+    category_data = []
+    for cat, v in category_stats.items():
+        rate = round(v["done"] / v["total"] * 100, 1) if v["total"] > 0 else 0.0
+        category_data.append({
+            "category": cat,
+            "done": v["done"],
+            "total": v["total"],
+            "rate": rate
+        })
+
+    category_data.sort(key=lambda x: x["category"])
+
+    return render_template(
+        "admin.html",
+        users=user_data,
+        categories=category_data
+    )
+
 
 
 

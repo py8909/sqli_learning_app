@@ -126,5 +126,25 @@
       </tbody>
     </table>
   </div>
+
+  <h2>SQL Injection Type Analysis</h2>
+
+<table border="1" cellpadding="8">
+  <tr>
+    <th>SQLi Type</th>
+    <th>Done</th>
+    <th>Total</th>
+    <th>Completion Rate (%)</th>
+  </tr>
+  {% for c in categories %}
+  <tr>
+    <td>{{ c.category }}</td>
+    <td>{{ c.done }}</td>
+    <td>{{ c.total }}</td>
+    <td>{{ c.rate }}%</td>
+  </tr>
+  {% endfor %}
+</table>
+
 </body>
 </html>
