@@ -194,7 +194,9 @@
 
 </body>
 </html>
-
+<hr>
+<p>session.user = {{ session.user }}</p>
+<p>ADMIN_USERNAME = {{ ADMIN_USERNAME }}</p>
 {% if session.user == config["ADMIN_USERNAME"] %}
 <hr>
 <form method="POST" action="/admin/promote">
