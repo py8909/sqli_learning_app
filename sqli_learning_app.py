@@ -6,7 +6,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy.exc import OperationalError
 from collections import defaultdict
 from sqlalchemy import func, case
-
+import json
+from sqlalchemy import desc
 
 app = Flask(__name__)
 
@@ -53,18 +54,24 @@ class Progress(db.Model):
 class QuizAttempt(db.Model):
     __tablename__ = "quiz_attempts"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    quiz_id = db.Column(db.String(50), nullable=False)   # 例: "quiz_sql_basics"
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    quiz_id = db.Column(db.String(50), nullable=False)
     attempt_no = db.Column(db.Integer, nullable=False)
     score = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
+    answers = db.relationship("QuizAnswer", backref="attempt", cascade="all, delete-orphan")
+
 class QuizAnswer(db.Model):
     __tablename__ = "quiz_answers"
     id = db.Column(db.Integer, primary_key=True)
-    attempt_id = db.Column(db.Integer, db.ForeignKey("quiz_attempts.id"), nullable=False)
+    attempt_id = db.Column(db.Integer, db.ForeignKey("quiz_attempts.id", ondelete="CASCADE"), nullable=False)
     question_id = db.Column(db.String(50), nullable=False)
     is_correct = db.Column(db.Boolean, nullable=False)
+
+    # 追加：ユーザーの回答（複数選択を想定してJSON文字列にする）
+    selected = db.Column(db.Text, nullable=False, default="[]")  # 例: '["A","C"]'
+
 
 
 def admin_required():
@@ -208,6 +215,15 @@ def admin_dashboard():
 
     question_data.sort(key=lambda x: x["rate"], reverse=True)
 
+    quiz_stats = dict(
+        db.session.query(
+            QuizAttempt.user_id,
+            func.count(QuizAttempt.id).label("attempts"),
+            func.avg(QuizAttempt.score).label("avg_score"),
+        ).group_by(QuizAttempt.user_id).all()
+    )
+
+
     return render_template(
     "admin.html",
     users=user_data,
@@ -318,48 +334,38 @@ def set_achievement(exercise):
     db.session.commit()
     return {"status": "ok"}
 
+
 @app.route("/quiz/submit", methods=["POST"])
 def submit_quiz():
     if "user" not in session:
         abort(403)
 
-    user = User.query.filter_by(username=session["user"]).first()
+    user = User.query.filter_by(username=session["user"]).first_or_404()
     quiz_id = "quiz_sql_basics"
 
-    # 試行回数
-    attempt_no = QuizAttempt.query.filter_by(
-        user_id=user.id, quiz_id=quiz_id
-    ).count() + 1
+    attempt_no = QuizAttempt.query.filter_by(user_id=user.id, quiz_id=quiz_id).count() + 1
 
-    # 採点
-    answers = request.form
     score = 0
-
-    attempt = QuizAttempt(
-        user_id=user.id,
-        quiz_id=quiz_id,
-        attempt_no=attempt_no,
-        score=0
-    )
+    attempt = QuizAttempt(user_id=user.id, quiz_id=quiz_id, attempt_no=attempt_no, score=0)
     db.session.add(attempt)
-    db.session.flush()  # attempt.id を取得
+    db.session.flush()  # attempt.id 確定
 
-    for qid, correct in QUIZ_ANSWER_KEY.items():
-        user_ans = answers.get(qid)
-        is_correct = (user_ans == correct)
+    for qid, correct_answers in QUIZ_ANSWER_KEY.items():
+        user_ans = request.form.getlist(qid)  # 複数選択対応
+        is_correct = set(user_ans) == set(correct_answers)
         if is_correct:
             score += 1
 
         db.session.add(QuizAnswer(
             attempt_id=attempt.id,
             question_id=qid,
-            is_correct=is_correct
+            is_correct=is_correct,
+            selected=json.dumps(user_ans, ensure_ascii=False)
         ))
 
     attempt.score = score
     db.session.commit()
 
-    return redirect("/quiz/result")
 
 @app.route("/admin/user/<username>")
 def admin_user_detail(username):
@@ -368,28 +374,76 @@ def admin_user_detail(username):
 
     user = User.query.filter_by(username=username).first_or_404()
 
-    # タスク進捗
-    progress = Progress.query.filter_by(user_id=user.id).all()
+    # 試行の概要
+    attempt_summary = (
+        db.session.query(
+            func.count(QuizAttempt.id).label("attempts"),
+            func.avg(QuizAttempt.score).label("avg_score"),
+            func.max(QuizAttempt.score).label("best_score"),
+        )
+        .filter(QuizAttempt.user_id == user.id)
+        .first()
+    )
 
-    # クイズ試行
-    attempts = QuizAttempt.query.filter_by(user_id=user.id).all()
-
-    # 誤答
-    answers = (
-        db.session.query(QuizAnswer)
-        .join(QuizAttempt)
-        .filter(QuizAttempt.user_id == user.id, QuizAnswer.is_correct == False)
+    attempts = (QuizAttempt.query
+        .filter_by(user_id=user.id)
+        .order_by(QuizAttempt.created_at.desc())
         .all()
     )
+
+    # 誤答ログ（選択肢もDBにある前提）
+    wrong_rows = (
+        db.session.query(QuizAnswer.question_id, QuizAnswer.selected, QuizAttempt.attempt_no, QuizAttempt.created_at)
+        .join(QuizAttempt, QuizAttempt.id == QuizAnswer.attempt_id)
+        .filter(QuizAttempt.user_id == user.id, QuizAnswer.is_correct == False)
+        .order_by(QuizAttempt.created_at.desc())
+        .all()
+    )
+
+    # question_id ごとに「何を選んで間違えたか」を集計
+    wrong_by_q = defaultdict(lambda: {"wrong_count": 0, "selected_counts": defaultdict(int), "examples": []})
+
+    for qid, selected_json, attempt_no, created_at in wrong_rows:
+        wrong_by_q[qid]["wrong_count"] += 1
+
+        try:
+            selected_list = json.loads(selected_json)
+        except Exception:
+            selected_list = []
+
+        key = ",".join(selected_list) if selected_list else "(未選択)"
+        wrong_by_q[qid]["selected_counts"][key] += 1
+
+        # 直近の例を少し残す（任意）
+        if len(wrong_by_q[qid]["examples"]) < 5:
+            wrong_by_q[qid]["examples"].append({
+                "attempt_no": attempt_no,
+                "selected": selected_list,
+                "created_at": created_at,
+            })
+
+    # テンプレートで扱いやすい形へ
+    wrong_stats = []
+    for qid, v in wrong_by_q.items():
+        selected_counts_sorted = sorted(v["selected_counts"].items(), key=lambda x: x[1], reverse=True)
+        wrong_stats.append({
+            "question_id": qid,
+            "wrong_count": v["wrong_count"],
+            "selected_counts": selected_counts_sorted,
+            "examples": v["examples"],
+        })
+    wrong_stats.sort(key=lambda x: x["wrong_count"], reverse=True)
+
+    progress = Progress.query.filter_by(user_id=user.id).all()
 
     return render_template(
         "admin_user_detail.html",
         user=user,
         progress=progress,
         attempts=attempts,
-        wrong_answers=answers
+        attempt_summary=attempt_summary,
+        wrong_stats=wrong_stats
     )
-
 
 # --- intro pages ---
 @app.route("/intro_sql")
@@ -460,6 +514,3 @@ def inject_admin_username():
 
 if __name__ == "__main__":
     app.run()
-
-with app.app_context():
-    db.create_all()

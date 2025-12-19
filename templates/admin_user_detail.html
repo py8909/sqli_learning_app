@@ -1,27 +1,86 @@
 <h2>{{ user.username }} - 学習詳細</h2>
 
-<h3>完了タスク</h3>
+<hr>
+
+<h3>① 学習タスク進捗</h3>
 <ul>
   {% for p in progress %}
-    <li>{{ p.exercise }} : {{ "✔" if p.done else "✘" }}</li>
+    <li>
+      {{ p.exercise }} :
+      <strong style="color: {{ 'green' if p.done else 'red' }}">
+        {{ "✔ 完了" if p.done else "✘ 未完了" }}
+      </strong>
+    </li>
   {% endfor %}
 </ul>
 
-<h3>テスト試行</h3>
-<table border="1">
-<tr><th>Quiz</th><th>Attempt</th><th>Score</th></tr>
-{% for a in attempts %}
-<tr>
-  <td>{{ a.quiz_id }}</td>
-  <td>{{ a.attempt_no }}</td>
-  <td>{{ a.score }}</td>
-</tr>
-{% endfor %}
+<hr>
+
+<h3>② クイズ試行サマリ</h3>
+<ul>
+  <li>総試行回数：{{ attempt_summary.attempts or 0 }}</li>
+  <li>平均スコア：{{ "%.2f"|format(attempt_summary.avg_score or 0) }}</li>
+  <li>最高スコア：{{ attempt_summary.best_score or 0 }}</li>
+</ul>
+
+<h4>試行履歴</h4>
+<table border="1" cellpadding="6">
+  <tr>
+    <th>Quiz ID</th>
+    <th>Attempt</th>
+    <th>Score</th>
+    <th>日時</th>
+  </tr>
+  {% for a in attempts %}
+  <tr>
+    <td>{{ a.quiz_id }}</td>
+    <td>{{ a.attempt_no }}</td>
+    <td>{{ a.score }}</td>
+    <td>{{ a.created_at }}</td>
+  </tr>
+  {% endfor %}
 </table>
 
-<h3>間違えた問題</h3>
-<ul>
-{% for w in wrong_answers %}
-  <li>Question: {{ w.question_id }}</li>
-{% endfor %}
-</ul>
+<hr>
+
+<h3>③ 設問別・誤答分析（重要）</h3>
+
+{% if wrong_stats %}
+  <table border="1" cellpadding="6">
+    <tr>
+      <th>Question ID</th>
+      <th>誤答回数</th>
+      <th>誤答選択肢（回数）</th>
+      <th>誤答例</th>
+    </tr>
+
+    {% for w in wrong_stats %}
+    <tr>
+      <td>{{ w.question_id }}</td>
+      <td><strong style="color:red">{{ w.wrong_count }}</strong></td>
+
+      <td>
+        <ul>
+          {% for choice, cnt in w.selected_counts %}
+            <li>{{ choice }} ： {{ cnt }} 回</li>
+          {% endfor %}
+        </ul>
+      </td>
+
+      <td>
+        <ul>
+          {% for ex in w.examples %}
+            <li>
+              {{ ex.created_at }} /
+              Attempt {{ ex.attempt_no }} /
+              選択：{{ ex.selected | join(", ") }}
+            </li>
+          {% endfor %}
+        </ul>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+{% else %}
+  <p>誤答はありません。</p>
+{% endif %}
