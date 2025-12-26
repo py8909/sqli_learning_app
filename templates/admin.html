@@ -134,9 +134,9 @@
           <td class="username">{{ u.username }}</td>
           {% for ex in exercises %}
             {% if u.progress.get(ex) %}
-              <td class="ok">✔</td>
+              <td class="ok">〇</td>
             {% else %}
-              <td class="ng">✘</td>
+              <td class="ng">✕</td>
             {% endif %}
           {% endfor %}
         </tr>
