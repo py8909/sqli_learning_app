@@ -3,52 +3,148 @@
 <head>
   <meta charset="UTF-8">
   <title>管理者画面</title>
+
   <style>
-    body { font-family: Arial, sans-serif; background: #f5f7fa; }
-    table {
-      border-collapse: collapse;
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ----- ヘッダー ----- */
+    .header {
+      background: #2c3e50;
+      color: white;
+      padding: 15px 20px;
+      font-size: 22px;
+      font-weight: bold;
+      position: relative;
+    }
+
+    .header a {
+      position: absolute;
+      right: 20px;
+      top: 16px;
+      color: #ecf0f1;
+      text-decoration: none;
+      font-size: 14px;
+      background: #34495e;
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+
+    .header a:hover {
+      background: #3d566e;
+    }
+
+    /* ----- メインエリア ----- */
+    .main-area {
+      padding: 30px 80px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      font-size: 26px;
+      color: #2c3e50;
+      border-left: 6px solid #2980b9;
+      padding-left: 12px;
+      margin-bottom: 20px;
+    }
+
+    /* ----- カード ----- */
+    .card {
       background: #fff;
-      margin: 20px auto;
-      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
     }
+
+    /* ----- テーブル ----- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
     th, td {
-      border: 1px solid #ddd;
-      padding: 8px 10px;
+      border-bottom: 1px solid #e6ecf3;
+      padding: 10px 8px;
       text-align: center;
+      font-size: 14px;
     }
+
     th {
       background: #eef3f8;
       font-weight: bold;
+      color: #34495e;
     }
-    .ok { color: green; font-weight: bold; }
-    .ng { color: red; font-weight: bold; }
+
+    tr:hover td {
+      background: #f8fbff;
+    }
+
+    .username {
+      font-weight: bold;
+      color: #2c3e50;
+      text-align: left;
+      padding-left: 12px;
+      white-space: nowrap;
+    }
+
+    .ok {
+      color: #27ae60;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .ng {
+      color: #e74c3c;
+      font-weight: bold;
+      font-size: 18px;
+    }
   </style>
 </head>
+
 <body>
 
-<h2 style="text-align:center">演習達成状況（管理者）</h2>
+  <!-- ヘッダー -->
+  <div class="header">
+    SQLi Learning（管理者）
+    <a href="/home">ホームへ戻る</a>
+  </div>
 
-<table>
-  <tr>
-    <th>ユーザー</th>
-    {% for ex in exercises %}
-      <th>{{ exercise_labels[ex] }}</th>
-    {% endfor %}
-  </tr>
+  <!-- メイン -->
+  <div class="main-area">
 
-  {% for u in users %}
-  <tr>
-    <td><strong>{{ u.username }}</strong></td>
-    {% for ex in exercises %}
-      {% if u.progress.get(ex) %}
-        <td class="ok">✔</td>
-      {% else %}
-        <td class="ng">✘</td>
-      {% endif %}
-    {% endfor %}
-  </tr>
-  {% endfor %}
-</table>
+    <h2 class="section-title">演習達成状況一覧</h2>
+
+    <div class="card">
+      <table>
+        <tr>
+          <th>ユーザー</th>
+          {% for ex in exercises %}
+            <th>{{ exercise_labels[ex] }}</th>
+          {% endfor %}
+        </tr>
+
+        {% for u in users %}
+        <tr>
+          <td class="username">{{ u.username }}</td>
+          {% for ex in exercises %}
+            {% if u.progress.get(ex) %}
+              <td class="ok">✔</td>
+            {% else %}
+              <td class="ng">✘</td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+  </div>
 
 </body>
 </html>

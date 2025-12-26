@@ -175,6 +175,14 @@ def admin_dashboard():
         exercise_labels=EXERCISE_CATEGORY
     )
 
+@app.context_processor
+def inject_is_admin():
+    is_admin = False
+    if "user" in session:
+        user = User.query.filter_by(username=session["user"]).first()
+        if user and user.is_admin:
+            is_admin = True
+    return dict(is_admin=is_admin)
 
 @app.route("/profile", methods=["GET", "POST"])
 def profile():

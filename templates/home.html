@@ -136,6 +136,11 @@
         <div class="hamburger">☰</div>
         <div class="menu">
             <a href="/profile">アカウント設定</a>
+            {% if is_admin %}
+                <a href="/admin" style="background: linear-gradient(135deg, #c0392b, #e74c3c);">
+                    管理者画面
+                </a>
+            {% endif %}
             <a href="/setlang/ja">日本語</a>
             <a href="/setlang/en">English</a>
             <a href="/login">ログイン画面</a>
