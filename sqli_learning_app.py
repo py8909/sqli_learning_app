@@ -150,86 +150,31 @@ def admin_dashboard():
     if not admin_required():
         abort(403)
 
-    users = User.query.all()
-    user_data = []
+    users = User.query.order_by(User.username).all()
+    progresses = Progress.query.all()
 
-    # --- ユーザー別集計 ---
+    # user_id → { exercise: done }
+    progress_map = {}
+    for p in progresses:
+        progress_map.setdefault(p.user_id, {})[p.exercise] = p.done
+
+    # 管理画面用データ
+    user_rows = []
     for u in users:
-        done = Progress.query.filter_by(user_id=u.id, done=True).count()
-        total = Progress.query.filter_by(user_id=u.id).count()
-        rate = round(done / total * 100, 1) if total > 0 else 0.0
-
-        user_data.append({
+        user_rows.append({
             "username": u.username,
-            "done": done,
-            "total": total,
-            "rate": rate
+            "progress": progress_map.get(u.id, {})
         })
 
-    # --- カテゴリ別集計（研究の核） ---
-    category_stats = defaultdict(lambda: {"done": 0, "total": 0})
-
-    for p in Progress.query.all():
-        category = EXERCISE_CATEGORY.get(p.exercise, "Unknown")
-        category_stats[category]["total"] += 1
-        if p.done:
-            category_stats[category]["done"] += 1
-
-    category_data = []
-    for cat, v in category_stats.items():
-        rate = round(v["done"] / v["total"] * 100, 1) if v["total"] > 0 else 0.0
-        category_data.append({
-            "category": cat,
-            "done": v["done"],
-            "total": v["total"],
-            "rate": rate
-        })
-
-    category_data.sort(key=lambda x: x["category"])
-
-    # --- 問題別誤答率（研究用） ---
-    question_stats = (
-        db.session.query(
-            QuizAnswer.question_id,
-            func.count(QuizAnswer.id).label("total"),
-            func.sum(
-                case(
-                    (QuizAnswer.is_correct == False, 1),
-                    else_=0
-                )
-            ).label("wrong")
-        )
-        .group_by(QuizAnswer.question_id)
-        .all()
-    )
-
-    question_data = []
-    for qid, total, wrong in question_stats:
-        rate = round(wrong / total * 100, 1) if total > 0 else 0.0
-        question_data.append({
-            "question_id": qid,
-            "total": total,
-            "wrong": wrong,
-            "rate": rate
-        })
-
-    question_data.sort(key=lambda x: x["rate"], reverse=True)
-
-    quiz_stats = dict(
-        db.session.query(
-            QuizAttempt.user_id,
-            func.count(QuizAttempt.id).label("attempts"),
-            func.avg(QuizAttempt.score).label("avg_score"),
-        ).group_by(QuizAttempt.user_id).all()
-    )
-
+    exercises = sorted(EXERCISE_CATEGORY.keys())
 
     return render_template(
-    "admin.html",
-    users=user_data,
-    categories=category_data,
-    questions=question_data
+        "admin.html",
+        users=user_rows,
+        exercises=exercises,
+        exercise_labels=EXERCISE_CATEGORY
     )
+
 
 @app.route("/profile", methods=["GET", "POST"])
 def profile():
