@@ -246,6 +246,56 @@ cursor.execute(query)
                     <li>Prepared Statement が有効な防御になる</li>
                 </ul>
             </div>
+
+            <div class="section-title">5. SQLインジェクションを防ぐための方法（対策）</div>
+            <div class="section-body">
+            URLパラメータはユーザーが自由に改変できるため、<strong>「数値に見えるから安全」</strong>は成立しません。
+            対策は次の2段構えが基本です。
+            <ul>
+                <li><strong>入力値の検証（バリデーション）</strong>：id は「整数のみ」など、受け入れる形式を厳格にする</li>
+                <li><strong>パラメータ化クエリ（Prepared Statement）</strong>：SQL文字列連結をやめ、値をバインドする</li>
+            </ul>
+            さらに、SQLiが成立した場合の被害を抑えるために、<strong>エラー抑制</strong>と<strong>最小権限</strong>も併用します。
+            </div>
+
+            <div class="section-title">6. 安全な実装例（URLパラメータ：整数 + バインド）</div>
+            <pre class="code-block">
+            -- 悪い例（文字列連結：SQL構造が壊れる）
+            SELECT * FROM items WHERE id = ${id};
+
+            -- 良い例①（型チェック：整数以外は拒否）
+            id = request.args.get("id", "")
+            if not id.isdigit():
+                abort(400)
+
+            -- 良い例②（パラメータ化：値はSQLとして解釈されない）
+            SELECT * FROM items WHERE id = ?;
+
+            # Python例（DB-API）
+            cursor.execute(
+            "SELECT * FROM items WHERE id = ?",
+            (int(id),)
+            )
+            </pre>
+
+            <div class="section-title">7. 追加の注意（URLパラメータ特有の落とし穴）</div>
+            <div class="section-body">
+            URLパラメータは、SQLi以外にも不正アクセスの入口になりやすいので、次も重要です。
+            <ul>
+                <li><strong>エラー内容を返さない</strong>：構文エラーやテーブル名などの情報は推測材料になる</li>
+                <li><strong>返すデータを最小化</strong>：SELECT * を避け、必要な列のみ取得する</li>
+                <li><strong>アクセス制御（IDOR対策）</strong>：id を変えただけで他人のデータが見えないようにする</li>
+                <li><strong>最小権限</strong>：DROP/ALTER 等の権限をアプリDBユーザーに付与しない</li>
+            </ul>
+            </div>
+
+            <div class="section-title">8. 演習のまとめ</div>
+            <div class="section-body">
+            この演習で確認したように、URLパラメータは簡単に改変でき、条件式やUNIONなどを混入されるとSQLの意味が変わります。
+            対策の要点は、<strong>型・形式の検証</strong>と<strong>パラメータ化</strong>を必須とし、
+            併せて<strong>エラー抑制・最小権限・返却データ最小化・アクセス制御</strong>で被害を抑えることです。
+            </div>
+
         </div>
 
         <!-- 右：URLパラメータ入力フォーム -->

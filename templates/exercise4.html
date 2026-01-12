@@ -265,24 +265,73 @@ cursor.execute(query)
                     <li>・Prepared Statement がエラー防御にも有効</li>
                 </ul>
             </div>
-        </div>
 
-        <!-- 右：フォーム -->
-        <div class="card">
-            <div class="card-title">エラーベース SQLi（演習用フォーム）</div>
-            <div class="card-subtitle">
-                GET /error_test?q=… に送信されます。
+            <div class="section-title">5. SQLインジェクションを防ぐための方法（対策）</div>
+            <div class="section-body">
+            エラーベースSQLiが成立する大きな要因は、<strong>ユーザー入力がSQL文に連結されること</strong>に加えて、
+            <strong>DBの詳細エラーがそのまま画面に露出すること</strong>です。対策は次の3点が中核になります。
+            <ul>
+                <li><strong>パラメータ化クエリ（Prepared Statement）</strong>でSQL構造と値を分離し、文字列連結をやめる</li>
+                <li><strong>詳細エラーメッセージをユーザーに返さない</strong>（共通エラーページ + サーバ側ログ）</li>
+                <li><strong>最小権限の原則</strong>で、仮にSQLiが起きても被害を抑える</li>
+            </ul>
             </div>
 
-            <form action="/error_test" method="get">
-                <div class="form-group">
-                    <label for="q">クエリ入力</label>
-                    <input type="text" id="q" name="q" placeholder="例：" autocomplete="off">
-                </div>
+            <div class="section-title">6. 安全な実装例（パラメータ化 + 例外処理）</div>
+            <pre class="code-block">
+            -- 悪い例（文字列連結：構文エラーやUNIONエラーが情報源になる）
+            query = "SELECT * FROM items WHERE name LIKE '%" + q + "%'"
+            cursor.execute(query)
 
-                <button type="submit" class="btn-primary">送信</button>
-            </form>
+            -- 良い例（パラメータ化：入力がSQLとして解釈されない）
+            pattern = "%" + q + "%"
+            cursor.execute("SELECT * FROM items WHERE name LIKE ?", (pattern,))
+
+            -- 良い例（例外処理：詳細エラーは画面に出さずログへ）
+            try:
+                cursor.execute("SELECT * FROM items WHERE name LIKE ?", (pattern,))
+            except Exception as e:
+                logger.exception("DB error")   # サーバ側ログに記録
+                return "Internal Server Error" # 画面には一般的なメッセージのみ
+            </pre>
+
+            <div class="section-title">7. エラーベース攻撃を成立させない設計のポイント</div>
+            <div class="section-body">
+            エラーベースSQLiでは、攻撃者はエラー内容から <strong>「クォートの有無」「列数」「DB種別」「テーブル名」</strong>などを推測します。
+            そのため、次の設計が特に有効です。
+            <ul>
+                <li><strong>本番ではDEBUGを無効化</strong>し、スタックトレースを表示しない</li>
+                <li><strong>共通エラーハンドラ</strong>を用意し、DB由来の例外を一律でマスクする</li>
+                <li><strong>SELECT * を避け、返す列を明示</strong>して想定外データの露出を抑える</li>
+                <li><strong>入力のバリデーション</strong>（長さ・文字種の制限）で攻撃文字列を通しにくくする</li>
+            </ul>
+            </div>
+
+            <div class="section-title">8. 演習のまとめ</div>
+            <div class="section-body">
+            この演習では、SQLのエラーが「攻撃者へのヒント」になり、UNIONの列数推測や内部情報の特定につながることを学びます。
+            対策の要点は、<strong>パラメータ化</strong>を徹底した上で、<strong>詳細エラーを利用者に返さない</strong>設計にすることです。
+            </div>
         </div>
+
+        <div class="card">
+        <div class="card-title">エラーベース SQLi（演習用フォーム）</div>
+        <div class="card-subtitle">
+            /error_test には送信せず、このページ内のみで動作します。
+        </div>
+
+        <form onsubmit="return fakeErrorBased(event)">
+            <div class="form-group">
+            <label for="q">クエリ入力</label>
+            <input type="text" id="q" name="q" placeholder="例：' / ' UNION SELECT 1 --" autocomplete="off">
+            </div>
+
+            <button type="submit" class="btn-primary">送信</button>
+
+            <div id="error-result" class="alert-info" style="display:none;"></div>
+        </form>
+        </div>
+
 
     </div>
 
@@ -300,6 +349,146 @@ cursor.execute(query)
             }
         }
     </script>
+
+    <script>
+    function toggleHint() {
+    const content = document.getElementById("hint-content");
+    const symbol = document.getElementById("hint-toggle-symbol");
+    if (content.style.display === "block") {
+        content.style.display = "none";
+        symbol.textContent = "＋";
+    } else {
+        content.style.display = "block";
+        symbol.textContent = "－";
+    }
+    }
+
+    function buildSQL(q) {
+    return `
+    SELECT * FROM items
+    WHERE name LIKE '%${q}%'
+    ;`.trim();
+    }
+
+    /* -----------------------------------
+    疑似 SQLi 判定：Error-based 版
+    - エラーメッセージを情報源にする流れを再現
+    ----------------------------------- */
+    function fakeErrorBased(event) {
+    event.preventDefault();
+
+    const q = document.getElementById("q").value.trim();
+    const box = document.getElementById("error-result");
+    const p = q.toLowerCase();
+    const sql = buildSQL(q);
+
+    box.style.display = "block";
+
+    // ① 単体クォート：構文エラー（最も基本）
+    if (q === "'") {
+        box.style.borderLeft = "4px solid #c0392b";
+        box.innerHTML = `
+        <strong style="color:#c0392b;">構文エラー（Syntax Error）</strong><br>
+        クォートが閉じていないためSQLが破壊されました。<br><br>
+        <b>疑似SQL：</b>
+        <pre>${sql}</pre>
+        <hr>
+        <b>学習ポイント：</b><br>
+        エラーが出ることで、入力がSQLに連結されていることが推測できます。
+        `;
+        return false;
+    }
+
+    // ② OR 条件で全件取得（エラーというより挙動変化だが、比較のため）
+    if (p.includes("or 1=1") || p.includes("'1'='1") || p.includes(`"1"="1`)) {
+        fetch("/set_achievement/exercise4", { method: "POST" });
+        box.style.borderLeft = "4px solid #27ae60";
+        box.innerHTML = `
+        <strong style="color:#27ae60;">✔ 条件改変（OR条件）</strong><br>
+        条件が常にTRUEになり、検索結果が不自然に増えた可能性があります。<br><br>
+        <b>疑似SQL：</b>
+        <pre>${sql}</pre>
+        <hr>
+        <b>観察：</b> エラーが出なくても「結果が増える」こと自体が脆弱性のサインです。
+        `;
+        return false;
+    }
+
+    // ③ UNION：列数不一致エラー（Error-basedの典型）
+    // この演習では items が「2列（id,name）」くらいを想定してエラー表現する
+    if (p.includes("union") && p.includes("select")) {
+        // sqlite_master を狙うと情報漏洩の雰囲気を出す
+        const targetsMaster = p.includes("sqlite_master");
+
+        // 列数推測のための単純な判定（例：SELECT 1 -- は1列で不一致、SELECT 1,2 -- は一致など）
+        const hasTwoCols = /union\s+select\s+[^,]+,\s*[^-]+/i.test(q);
+
+        if (!hasTwoCols) {
+        box.style.borderLeft = "4px solid #c0392b";
+        box.innerHTML = `
+            <strong style="color:#c0392b;">✕ カラム数エラー（UNION列数不一致）</strong><br>
+            UNIONで指定した列数が元のSELECTと一致しないため失敗しました。<br><br>
+            <b>疑似SQL：</b>
+            <pre>${sql}</pre>
+            <hr>
+            <b>学習ポイント：</b><br>
+            エラーメッセージから「必要な列数」を推測できる点が危険です。
+        `;
+        return false;
+        }
+
+        // 2列っぽい入力なら「成功→情報漏洩」風に見せる
+        fetch("/set_achievement/exercise4", { method: "POST" });
+        box.style.borderLeft = "4px solid #27ae60";
+        box.innerHTML = `
+        <strong style="color:#27ae60;">✔ UNION攻撃（情報漏洩の可能性）</strong><br>
+        列数が一致したため、想定外のデータが表示される可能性があります。<br><br>
+        <b>疑似SQL：</b>
+        <pre>${sql}</pre>
+        <hr>
+        <b>疑似表示：</b><br>
+        ${targetsMaster ? "・sqlite_master からテーブル定義（sql）が見えてしまう可能性" : "・本来出ない列が混入する可能性"}
+        <br><br>
+        <b>学習ポイント：</b><br>
+        エラーを手掛かりに列数を合わせ、内部情報へ到達できます。
+        `;
+        return false;
+    }
+
+    // ④ Error-based（0除算など）を明確に扱う
+    if (p.includes("1/0") || p.includes("extractvalue") || p.includes("updatexml") || p.includes("randomblob")) {
+        fetch("/set_achievement/exercise4", { method: "POST" });
+        box.style.borderLeft = "4px solid #c0392b";
+        box.innerHTML = `
+        <strong style="color:#c0392b;">✕ DBエラー（Error-based SQLi）</strong><br>
+        意図的にDBエラーを起こし、エラーメッセージから情報を得ようとしています。<br><br>
+        <b>疑似SQL：</b>
+        <pre>${sql}</pre>
+        <hr>
+        <b>学習ポイント：</b><br>
+        本番環境で詳細エラーを返す設計は、攻撃者に強力なヒントを与えます。
+        `;
+        return false;
+    }
+
+    // ⑤ 通常検索
+    const sampleDB = ["apple", "banana", "orange", "test", "coffee"];
+    const hits = sampleDB.filter(item => item.includes(p));
+
+    box.style.borderLeft = "4px solid #2980b9";
+    box.innerHTML = `
+        <strong style="color:#2980b9;">✔ 通常検索</strong><br>
+        エラーは発生していません。<br><br>
+        <b>疑似SQL：</b>
+        <pre>${sql}</pre>
+        <hr>
+        <b>検索結果：</b><br>
+        ${hits.length ? hits.map(h => "・" + h).join("<br>") : "0件"}
+    `;
+    return false;
+    }
+    </script>
+
 
 <div style="text-align:center; margin-top: 20px;">
     <a href="/home"

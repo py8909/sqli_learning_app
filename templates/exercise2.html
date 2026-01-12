@@ -241,6 +241,53 @@ cursor.execute(query)
                     <li>Prepared Statement を使うと安全になる理由を理解する</li>
                 </ul>
             </div>
+
+            <div class="section-title">5. SQLインジェクションを防ぐための方法（対策）</div>
+            <div class="section-body">
+            検索フォームは外部入力をそのまま検索条件に使うため、SQLiの標的になりやすい機能です。
+            対策の基本は <strong>「入力値をSQL文字列に連結しない」</strong> ことであり、特に次の点が重要です。
+            <ul>
+                <li><strong>プレースホルダ（Prepared Statement / パラメータ化クエリ）</strong>でSQL構造と値を分離する</li>
+                <li><strong>LIKE句のワイルドカード（% / _）の扱い</strong>を意識し、必要に応じてエスケープする</li>
+                <li><strong>エラーメッセージを画面に出さない</strong>（構文エラーから内部構造が推測される）</li>
+                <li><strong>表示データの最小化</strong>（検索結果に機密情報・内部テーブル情報を含めない）</li>
+                <li><strong>最小権限の原則</strong>（検索用アカウントに不要な権限を与えない）</li>
+            </ul>
+            </div>
+
+            <div class="section-title">6. 安全な実装例（LIKE検索のパラメータ化）</div>
+            <pre class="code-block">
+            -- 悪い例（文字列連結：q がSQL構造を壊せる）
+            SELECT * FROM products WHERE name LIKE '%${q}%';
+
+            -- 良い例（パラメータ化：値はSQLとして解釈されない）
+            SELECT * FROM products WHERE name LIKE ?;
+
+            # Python例（DB-APIのプレースホルダを利用）
+            pattern = "%" + q + "%"
+            cursor.execute(
+            "SELECT * FROM products WHERE name LIKE ?",
+            (pattern,)
+            )
+            </pre>
+
+            <div class="section-title">7. 追加の注意（UNION・内部情報漏洩を防ぐ）</div>
+            <div class="section-body">
+            UNION攻撃は「検索結果として<strong>本来想定していない列</strong>」を表示できてしまう点が危険です。
+            そのため、SQLi対策に加えて次の設計も有効です。
+            <ul>
+                <li>検索結果のSQLは <strong>SELECT 列を明示</strong>し、不要な列（パスワード、管理フラグ等）を返さない</li>
+                <li>DBエラーはユーザーに返さず、<strong>サーバ側ログ</strong>のみに記録する</li>
+                <li>検索APIに <strong>レート制限</strong>を入れ、Blind SQLiの総当たりを難しくする</li>
+            </ul>
+            </div>
+
+            <div class="section-title">8. 演習のまとめ</div>
+            <div class="section-body">
+            この演習では、検索条件にユーザー入力を連結すると、LIKE句でもSQL構造が改変され得ることを確認します。
+            対策の要点は、<strong>パラメータ化クエリ</strong>を徹底し、加えて<strong>エラー抑制・最小権限・返却データの最小化</strong>を組み合わせることです。
+            </div>
+
         </div>
 
         <!-- 右：検索フォーム -->

@@ -255,6 +255,43 @@ AND password = '' OR '1'='1' -- '
                     <li>エラーの挙動から内部構造が推測されてしまう怖さを知る</li>
                 </ul>
             </div>
+
+            <div class="section-title">5. SQLインジェクションを防ぐための方法（対策）</div>
+            <div class="section-body">
+            ログイン機能のようにユーザー入力を扱う箇所では、<strong>「入力値をSQL文字列に連結しない」</strong>ことが基本です。
+            特に次の対策を組み合わせることで、SQLiの多くを防止できます。
+            <ul>
+                <li><strong>プレースホルダ（Prepared Statement / パラメータ化クエリ）を使用</strong>し、SQL構造と値を分離する</li>
+                <li><strong>入力値の検証（バリデーション）</strong>：想定される形式・長さ・文字種を満たさない入力は拒否する</li>
+                <li><strong>エラーメッセージの抑制</strong>：DBの詳細なエラーを画面に出さず、ログにのみ記録する</li>
+                <li><strong>最小権限の原則</strong>：アプリ用DBユーザーには必要最小限の権限のみ付与する</li>
+                <li><strong>パスワードは平文で照合しない</strong>：ハッシュ化して照合する（漏洩時の被害を抑える）</li>
+            </ul>
+            </div>
+
+            <div class="section-title">6. 安全な実装例（パラメータ化）</div>
+            <pre class="code-block">
+            -- 悪い例（文字列連結：SQL構造が壊れる）
+            SELECT * FROM users
+            WHERE username = '${username}' AND password = '${password}';
+
+            -- 良い例（プレースホルダ：値はSQLとして解釈されない）
+            SELECT * FROM users
+            WHERE username = ? AND password_hash = ?;
+
+            # Python例（DB-APIのプレースホルダを利用）
+            cursor.execute(
+            "SELECT * FROM users WHERE username = ? AND password_hash = ?",
+            (username, password_hash)
+            )
+            </pre>
+
+            <div class="section-title">7. 演習のまとめ</div>
+            <div class="section-body">
+            この演習で体験した認証バイパスは、「入力値がSQLの一部として解釈される」ことで成立します。
+            対策の要点は、<strong>SQL文字列の連結をやめてパラメータ化する</strong>こと、そして<strong>入力検証・エラー抑制・最小権限</strong>を合わせて実装することです。
+            </div>
+
         </div>
 
         <div class="card">

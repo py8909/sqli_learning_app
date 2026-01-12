@@ -311,98 +311,144 @@ return "OK"
     </div>
 
     <script>
-        function toggleHint() {
-            const content = document.getElementById("hint-content");
-            const symbol = document.getElementById("hint-toggle-symbol");
-            if (content.style.display === "block") {
-                content.style.display = "none";
-                symbol.textContent = "＋";
-            } else {
-                content.style.display = "block";
-                symbol.textContent = "－";
-            }
-        }
+    function toggleHint() {
+    const content = document.getElementById("hint-content");
+    const symbol  = document.getElementById("hint-toggle-symbol");
+    if (content.style.display === "block") {
+        content.style.display = "none";
+        symbol.textContent = "＋";
+    } else {
+        content.style.display = "block";
+        symbol.textContent = "－";
+    }
+    }
 
-        function fakeBlind(event) {
+    function buildSQL(input) {
+    // “結果を返さないAPI” の疑似SQL表示
+    return `SELECT * FROM users WHERE name='${input}';`;
+    }
+
+    // 判定の揺れを減らすため、スペース潰し＆小文字化して比較する
+    function normalize(s) {
+    return (s || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " "); // 連続空白を1つへ
+    }
+
+    function markDone() {
+    // ここだけに統一（exercise5のみ）
+    fetch("/set_achievement/exercise5", { method: "POST" }).catch(() => {});
+    }
+
+    function fakeBlind(event) {
     event.preventDefault();
 
-    const input = document.getElementById("q").value.trim();
+    const raw = document.getElementById("q").value.trim();
+    const input = normalize(raw);
+
     const box = document.getElementById("blind-result");
     box.style.display = "block";
 
-    const sql = `SELECT * FROM users WHERE name='${input}'`;
+    const sql = buildSQL(raw);
 
-    /* --- 判定パターン --- */
+    // --- 判定パターン（入力例のブレを吸収するよう拡張） ---
     const patterns = {
-        true_based: /(or|OR)\s*1\s*=\s*1/,
-        false_based: /(and|AND)\s*1\s*=\s*0/,
-        time_based: /(sleep|pg_sleep|benchmark)/i,
-        length_based: /(UNION|union)\s+SELECT/i,
+        // True/False系（1=1, '1'='1', true などを包含）
+        true_based: /\b(or|and)\b.*\b(1\s*=\s*1|true|'1'\s*=\s*'1'|"1"\s*=\s*"1")\b/,
+        false_based: /\b(or|and)\b.*\b(1\s*=\s*0|false|'1'\s*=\s*'0'|"1"\s*=\s*"0")\b/,
+
+        // Time-based（DB差を許容：sleep/pg_sleep/benchmark 等）
+        time_based: /\b(sleep|pg_sleep|benchmark)\s*\(/,
+
+        // Length-based（UNIONや大量文字列で“長くなる”系）
+        length_based: /\bunion\b\s+\bselect\b/,
+
+        // コメントアウト（盲目的に成立しやすい典型）
+        comment: /(--|#|\/\*)/
     };
 
-    let message = "";
-
-    /* --- Time-based の疑似ディレイ  --- */
-    if (patterns.time_based.test(input)) {
-        fetch("/set_achievement/exercise5", { method: "POST" });
-        box.style.border = "2px solid #e67e22";
-        message = `
-            <strong style='color:#e67e22;'>⏳ Time-based Blind SQLi</strong><br>
-            応答が遅くなりました（疑似遅延 2秒）。<br><br>
-            疑似SQL：<br><code>${sql}</code>
+    // 表示共通テンプレ
+    function render({border, titleColor, title, body, extra}) {
+        box.style.border = `2px solid ${border}`;
+        box.innerHTML = `
+        <strong style="color:${titleColor};">${title}</strong><br>
+        ${body}<br><br>
+        <b>疑似SQL：</b><br>
+        <pre style="margin:6px 0 0;">${sql}</pre>
+        ${extra ? `<hr>${extra}` : ""}
         `;
+    }
 
-        setTimeout(() => { box.innerHTML = message; }, 2000);
+    // ---- 優先順位：time_based → length_based → true/false → 通常 ----
+    // Time-based は “遅延” が本質なので先に評価
+    if (patterns.time_based.test(input)) {
+        markDone();
+        render({
+        border: "#e67e22",
+        titleColor: "#e67e22",
+        title: "⏳ Time-based Blind SQLi（疑似）",
+        body: "条件により応答が遅延したと推測されます（疑似遅延 2秒）。",
+        extra: "学習ポイント：結果が出なくても「応答時間」だけで真偽判定・情報抽出が可能。"
+        });
 
-        fetch("/set_achievement/exercise_blind", { method: "POST" });
+        // “遅くなった体感” を確実に出す（表示を2秒後に更新）
+        const currentHTML = box.innerHTML;
+        box.innerHTML = currentHTML + `<br><em>（処理中…）</em>`;
+        setTimeout(() => { box.innerHTML = currentHTML; }, 2000);
         return false;
     }
 
-    /* --- True-based --- */
-    if (patterns.true_based.test(input)) {
-        fetch("/set_achievement/exercise5", { method: "POST" });
-        box.style.border = "2px solid #27ae60";
-        message = `
-            <strong style='color:#27ae60;'>✔ True/False ベース：True</strong><br>
-            条件が真となり、結果が取得されたと推測されます。<br><br>
-            疑似SQL：<br><code>${sql}</code>
-        `;
-        fetch("/set_achievement/exercise_blind", { method: "POST" });
-    }
-    /* --- False-based --- */
-    else if (patterns.false_based.test(input)) {
-        box.style.border = "2px solid #c0392b";
-        message = `
-            <strong style='color:#c0392b;'>✕ True/False ベース：False</strong><br>
-            条件が偽となり、結果は0件と推測されます。<br><br>
-            疑似SQL：<br><code>${sql}</code>
-        `;
-    }
-    /* --- レスポンス長ベース（UNION） --- */
-    else if (patterns.length_based.test(input)) {
-        fetch("/set_achievement/exercise5", { method: "POST" });
-        box.style.border = "2px solid #8e44ad";
-        message = `
-            <strong style='color:#8e44ad;'>📏 レスポンス長ベース Blind SQLi</strong><br>
-            UNION攻撃により返却データの長さが変わったと推測されます。<br><br>
-            疑似SQL：<br><code>${sql}</code>
-        `;
-        fetch("/set_achievement/exercise_blind", { method: "POST" });
-    }
-    /* --- 通常 --- */
-    else {
-        box.style.border = "2px solid #2980b9";
-        message = `
-            <strong style='color:#2980b9;'>✔ 正常なリクエスト</strong><br>
-            SQLインジェクションは成立しませんでした。<br><br>
-            疑似SQL：<br><code>${sql}</code>
-        `;
+    // Length-based（UNIONなどで返却サイズの差を作る想定）
+    if (patterns.length_based.test(input)) {
+        markDone();
+        render({
+        border: "#8e44ad",
+        titleColor: "#8e44ad",
+        title: "📏 レスポンス長ベース Blind SQLi（疑似）",
+        body: "返却内容の長さ（レスポンスサイズ）が変化したと推測されます。",
+        extra: "学習ポイント：表示結果が無くても、レスポンスサイズや分岐で内部状態を推測可能。"
+        });
+        return false;
     }
 
-    box.innerHTML = message;
+    // True/False（コメントアウトの有無でそれっぽさが増すので補足表示）
+    if (patterns.true_based.test(input) && !patterns.false_based.test(input)) {
+        markDone();
+        render({
+        border: "#27ae60",
+        titleColor: "#27ae60",
+        title: "✔ True/False ベース：True（疑似）",
+        body: `条件が真になったと推測されます${patterns.comment.test(input) ? "（コメントアウトにより後続条件が無効化された可能性）" : ""}。`,
+        extra: "学習ポイント：真/偽で挙動差（例：OK/NG、リダイレクト有無、レスポンス差）が出るAPIは危険。"
+        });
+        return false;
+    }
+
+    if (patterns.false_based.test(input) && !patterns.true_based.test(input)) {
+        render({
+        border: "#c0392b",
+        titleColor: "#c0392b",
+        title: "✕ True/False ベース：False（疑似）",
+        body: "条件が偽になったと推測されます（結果0件相当）。",
+        extra: "学習ポイント：攻撃者は True と False の差分だけで内部情報を推測する。"
+        });
+        return false;
+    }
+
+    // 通常（疑似的に“差がない”状態）
+    render({
+        border: "#2980b9",
+        titleColor: "#2980b9",
+        title: "✔ 正常なリクエスト（疑似）",
+        body: "明確なブラインドSQLiパターンは検出されませんでした。",
+        extra: "ヒント：' OR 1=1 -- / ' AND 1=0 -- / ' UNION SELECT ... / sleep(3) を試してください。"
+    });
+
     return false;
-}
+    }
     </script>
+
 
 <div style="text-align:center; margin-top: 20px;">
     <a href="/home"
