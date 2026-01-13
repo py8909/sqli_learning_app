@@ -27,7 +27,7 @@
             font-weight: normal;
             color: #bdc3c7;
             margin-top: 4px;
-        }           
+        }
 
         /* ----- レイアウト ----- */
         .container {
@@ -220,8 +220,8 @@
 
             <div class="section-title">1. 演習の目的</div>
             <div class="section-body">
-                ブラインドSQLインジェクションは、  
-                <strong>画面にエラーも結果も表示されない場合でも成立する攻撃</strong> です。  
+                ブラインドSQLインジェクションは、
+                <strong>画面にエラーも結果も表示されない場合でも成立する攻撃</strong> です。
                 この演習では以下3種類のBlind SQLiを体験します：
                 <ul>
                     <li>① True/False ベース</li>
@@ -239,7 +239,7 @@ query = "SELECT * FROM users WHERE name = '" + q + "'"
 rows = cursor.fetchall()
 return "OK"
             </pre>
-                「OK」しか返さないため、  
+                「OK」しか返さないため、
                 <strong>攻撃者は応答内容（または時間）から成功を推測します。</strong>
             </div>
 
@@ -249,7 +249,7 @@ return "OK"
                 <ul>
                     <li>① True/False： <code>' OR 1=1 --</code></li>
                     <li>② False： <code>' AND 1=0 --</code></li>
-                    <li>③ 時間差（SQLite/PG用）： <code>' OR CASE WHEN (1=1) THEN sleep(3) END --</code></li>
+                    <li>③ 時間差： <code>' OR sleep(3) --</code>（DBによって関数名が異なる）</li>
                     <li>④ レスポンス長： <code>' UNION SELECT 'AAAAA...' --</code></li>
                 </ul>
 
@@ -270,7 +270,7 @@ return "OK"
                         <li>時間差は強力で、1文字ずつ抽出が可能</li>
                         <li>脆弱APIは「情報の非表示＝安全」と誤解しがち</li>
                     </ul>
-                    <p>ブラインドSQLiは自動化しやすいため、  
+                    <p>ブラインドSQLiは自動化しやすいため、
                     実際の攻撃で最も利用される危険な手法です。</p>
                 </div>
             </div>
@@ -284,187 +284,222 @@ return "OK"
                     <li>ログ監視・レート制限も重要な対策となる</li>
                 </ul>
             </div>
+
+            <!-- =========================================================
+                 追加：SQLiを防ぐための方法（演習5向け）
+                 ========================================================= -->
+            <div class="section-title">5. SQLインジェクションを防ぐための方法（対策）</div>
+            <div class="section-body">
+                ブラインドSQLiは「結果を見せない」だけでは防げません。防御の本質は、
+                <strong>SQL構造とユーザ入力を分離すること</strong>と、
+                <strong>推測に使える“差”を作らない運用</strong>です。
+                <ul>
+                    <li><strong>パラメータ化クエリ（Prepared Statement）/ ORM</strong>を必須にする（文字列連結禁止）</li>
+                    <li><strong>例外メッセージを外部へ返さない</strong>（本番でスタックトレース/詳細を隠す）</li>
+                    <li><strong>レスポンスの統一</strong>：成功/失敗で本文やサイズの差を過度に出さない（可能なら一定化）</li>
+                    <li><strong>時間差の抑制</strong>：極端な処理時間の差を出さない、DB関数の利用を制限する</li>
+                    <li><strong>レート制限・WAF・検知</strong>：繰り返し試行（自動化）を止める、ログで検知する</li>
+                    <li><strong>最小権限</strong>：アプリ用DBユーザに不要な権限（DDL/拡張機能など）を付与しない</li>
+                </ul>
+            </div>
+
+            <div class="section-title">6. 安全な実装例（Prepared Statement / ORM）</div>
+            <pre class="code-block">
+# 悪い例（SQLを文字列連結で構築）
+query = "SELECT * FROM users WHERE name = '" + q + "'"
+cursor.execute(query)
+
+# 良い例①（DB-API：プレースホルダ）
+cursor.execute("SELECT * FROM users WHERE name = ?", (q,))
+
+# 良い例②（SQLAlchemy ORM：値はバインドされる）
+rows = User.query.filter(User.name == q).all()
+            </pre>
+
+            <div class="section-title">7. Blind 対策の追加ポイント（設計・運用）</div>
+            <div class="section-body">
+                <ul>
+                    <li><strong>一定時間以上のクエリを遮断/監視</strong>（DB側タイムアウト、アプリ側サーキットブレーカ）</li>
+                    <li><strong>一定回数の失敗でブロック</strong>（IP/アカウントごとの制限）</li>
+                    <li><strong>監査ログ</strong>：<code>OR 1=1</code> / <code>UNION</code> / <code>sleep</code> の試行を記録</li>
+                </ul>
+                ブラインドSQLiは「自動化」が前提になりやすいため、
+                <strong>レート制限と検知</strong>は実務上非常に有効です。
+            </div>
+            <!-- 追加ここまで -->
         </div>
 
         <!-- 右：実際のフォーム -->
         <div class="card">
-    <div class="card-title">ブラインド SQLi（演習用API）</div>
-    <div class="card-subtitle">
-        /blind に送らず、このページ内のみで動作します。
-    </div>
+            <div class="card-title">ブラインド SQLi（演習用API）</div>
+            <div class="card-subtitle">
+                /blind に送らず、このページ内のみで動作します。
+            </div>
 
-    <!-- 🔽 ページ内完結フォームに変更 -->
-    <form onsubmit="return fakeBlind(event)">
-        <div class="form-group">
-            <label for="q">テスト入力（任意）</label>
-            <input type="text" id="q" name="q"
-                placeholder="例：' OR 1=1 -- , ' AND 1=0 -- , ' OR CASE WHEN (1=1) THEN sleep(3) END --" autocomplete="off">
+            <form onsubmit="return fakeBlind(event)">
+                <div class="form-group">
+                    <label for="q">テスト入力（任意）</label>
+                    <input type="text" id="q" name="q"
+                           placeholder="例：' OR 1=1 -- , ' AND 1=0 -- , ' OR sleep(3) -- , ' UNION SELECT 'AAAA' --"
+                           autocomplete="off">
+                </div>
+
+                <button type="submit" class="btn-primary">送信</button>
+
+                <div id="blind-result" class="alert-info" style="display:none; margin-top:14px;"></div>
+            </form>
         </div>
-
-        <button type="submit" class="btn-primary">送信</button>
-
-        <!-- 🔽 結果表示領域 -->
-        <div id="blind-result" class="alert-info" style="display:none; margin-top:14px;"></div>
-    </form>
-</div>
 
     </div>
 
     <script>
-    function toggleHint() {
-    const content = document.getElementById("hint-content");
-    const symbol  = document.getElementById("hint-toggle-symbol");
-    if (content.style.display === "block") {
-        content.style.display = "none";
-        symbol.textContent = "＋";
-    } else {
-        content.style.display = "block";
-        symbol.textContent = "－";
-    }
-    }
+        function toggleHint() {
+            const content = document.getElementById("hint-content");
+            const symbol  = document.getElementById("hint-toggle-symbol");
+            if (content.style.display === "block") {
+                content.style.display = "none";
+                symbol.textContent = "＋";
+            } else {
+                content.style.display = "block";
+                symbol.textContent = "－";
+            }
+        }
 
-    function buildSQL(input) {
-    // “結果を返さないAPI” の疑似SQL表示
-    return `SELECT * FROM users WHERE name='${input}';`;
-    }
+        function buildSQL(inputRaw) {
+            // “結果を返さないAPI” の疑似SQL表示（rawは表示用）
+            return `SELECT * FROM users WHERE name='${inputRaw}';`;
+        }
 
-    // 判定の揺れを減らすため、スペース潰し＆小文字化して比較する
-    function normalize(s) {
-    return (s || "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, " "); // 連続空白を1つへ
-    }
+        // 判定の揺れを減らすため、スペース潰し＆小文字化して比較する
+        function normalize(s) {
+            return (s || "")
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, " "); // 連続空白を1つへ
+        }
 
-    function markDone() {
-    // ここだけに統一（exercise5のみ）
-    fetch("/set_achievement/exercise5", { method: "POST" }).catch(() => {});
-    }
+        function markDone() {
+            // 達成登録は exercise5 のみに統一
+            fetch("/set_achievement/exercise5", { method: "POST" }).catch(() => {});
+        }
 
-    function fakeBlind(event) {
-    event.preventDefault();
+        function fakeBlind(event) {
+            event.preventDefault();
 
-    const raw = document.getElementById("q").value.trim();
-    const input = normalize(raw);
+            const raw = document.getElementById("q").value.trim();
+            const input = normalize(raw);
 
-    const box = document.getElementById("blind-result");
-    box.style.display = "block";
+            const box = document.getElementById("blind-result");
+            box.style.display = "block";
 
-    const sql = buildSQL(raw);
+            const sql = buildSQL(raw);
 
-    // --- 判定パターン（入力例のブレを吸収するよう拡張） ---
-    const patterns = {
-        // True/False系（1=1, '1'='1', true などを包含）
-        true_based: /\b(or|and)\b.*\b(1\s*=\s*1|true|'1'\s*=\s*'1'|"1"\s*=\s*"1")\b/,
-        false_based: /\b(or|and)\b.*\b(1\s*=\s*0|false|'1'\s*=\s*'0'|"1"\s*=\s*"0")\b/,
+            // --- 判定パターン（入力例のブレを吸収するよう拡張） ---
+            const patterns = {
+                // True/False系（1=1, '1'='1', true などを包含）
+                true_based: /\b(or|and)\b.*\b(1\s*=\s*1|true|'1'\s*=\s*'1'|"1"\s*=\s*"1")\b/,
+                false_based: /\b(or|and)\b.*\b(1\s*=\s*0|false|'1'\s*=\s*'0'|"1"\s*=\s*"0")\b/,
 
-        // Time-based（DB差を許容：sleep/pg_sleep/benchmark 等）
-        time_based: /\b(sleep|pg_sleep|benchmark)\s*\(/,
+                // Time-based（DB差を許容：sleep/pg_sleep/benchmark 等）
+                time_based: /\b(sleep|pg_sleep|benchmark)\s*\(/,
 
-        // Length-based（UNIONや大量文字列で“長くなる”系）
-        length_based: /\bunion\b\s+\bselect\b/,
+                // Length-based（UNION）
+                length_based: /\bunion\b\s+\bselect\b/,
 
-        // コメントアウト（盲目的に成立しやすい典型）
-        comment: /(--|#|\/\*)/
-    };
+                // コメントアウト
+                comment: /(--|#|\/\*)/
+            };
 
-    // 表示共通テンプレ
-    function render({border, titleColor, title, body, extra}) {
-        box.style.border = `2px solid ${border}`;
-        box.innerHTML = `
-        <strong style="color:${titleColor};">${title}</strong><br>
-        ${body}<br><br>
-        <b>疑似SQL：</b><br>
-        <pre style="margin:6px 0 0;">${sql}</pre>
-        ${extra ? `<hr>${extra}` : ""}
-        `;
-    }
+            function render({border, titleColor, title, body, extra}) {
+                box.style.border = `2px solid ${border}`;
+                box.innerHTML = `
+                    <strong style="color:${titleColor};">${title}</strong><br>
+                    ${body}<br><br>
+                    <b>疑似SQL：</b><br>
+                    <pre style="margin:6px 0 0;">${sql}</pre>
+                    ${extra ? `<hr>${extra}` : ""}
+                `;
+            }
 
-    // ---- 優先順位：time_based → length_based → true/false → 通常 ----
-    // Time-based は “遅延” が本質なので先に評価
-    if (patterns.time_based.test(input)) {
-        markDone();
-        render({
-        border: "#e67e22",
-        titleColor: "#e67e22",
-        title: "⏳ Time-based Blind SQLi（疑似）",
-        body: "条件により応答が遅延したと推測されます（疑似遅延 2秒）。",
-        extra: "学習ポイント：結果が出なくても「応答時間」だけで真偽判定・情報抽出が可能。"
-        });
+            // 優先順位：time_based → length_based → true/false → 通常
+            if (patterns.time_based.test(input)) {
+                markDone();
+                render({
+                    border: "#e67e22",
+                    titleColor: "#e67e22",
+                    title: "⏳ Time-based Blind SQLi（疑似）",
+                    body: "条件により応答が遅延したと推測されます（疑似遅延 2秒）。",
+                    extra: "学習ポイント：結果が出なくても「応答時間」だけで真偽判定・情報抽出が可能。"
+                });
 
-        // “遅くなった体感” を確実に出す（表示を2秒後に更新）
-        const currentHTML = box.innerHTML;
-        box.innerHTML = currentHTML + `<br><em>（処理中…）</em>`;
-        setTimeout(() => { box.innerHTML = currentHTML; }, 2000);
-        return false;
-    }
+                const currentHTML = box.innerHTML;
+                box.innerHTML = currentHTML + `<br><em>（処理中…）</em>`;
+                setTimeout(() => { box.innerHTML = currentHTML; }, 2000);
+                return false;
+            }
 
-    // Length-based（UNIONなどで返却サイズの差を作る想定）
-    if (patterns.length_based.test(input)) {
-        markDone();
-        render({
-        border: "#8e44ad",
-        titleColor: "#8e44ad",
-        title: "📏 レスポンス長ベース Blind SQLi（疑似）",
-        body: "返却内容の長さ（レスポンスサイズ）が変化したと推測されます。",
-        extra: "学習ポイント：表示結果が無くても、レスポンスサイズや分岐で内部状態を推測可能。"
-        });
-        return false;
-    }
+            if (patterns.length_based.test(input)) {
+                markDone();
+                render({
+                    border: "#8e44ad",
+                    titleColor: "#8e44ad",
+                    title: "📏 レスポンス長ベース Blind SQLi（疑似）",
+                    body: "返却内容の長さ（レスポンスサイズ）が変化したと推測されます。",
+                    extra: "学習ポイント：表示結果が無くても、レスポンスサイズや分岐で内部状態を推測可能。"
+                });
+                return false;
+            }
 
-    // True/False（コメントアウトの有無でそれっぽさが増すので補足表示）
-    if (patterns.true_based.test(input) && !patterns.false_based.test(input)) {
-        markDone();
-        render({
-        border: "#27ae60",
-        titleColor: "#27ae60",
-        title: "✔ True/False ベース：True（疑似）",
-        body: `条件が真になったと推測されます${patterns.comment.test(input) ? "（コメントアウトにより後続条件が無効化された可能性）" : ""}。`,
-        extra: "学習ポイント：真/偽で挙動差（例：OK/NG、リダイレクト有無、レスポンス差）が出るAPIは危険。"
-        });
-        return false;
-    }
+            if (patterns.true_based.test(input) && !patterns.false_based.test(input)) {
+                markDone();
+                render({
+                    border: "#27ae60",
+                    titleColor: "#27ae60",
+                    title: "✔ True/False ベース：True（疑似）",
+                    body: `条件が真になったと推測されます${patterns.comment.test(input) ? "（コメントアウトにより後続条件が無効化された可能性）" : ""}。`,
+                    extra: "学習ポイント：真/偽で挙動差（OK/NG、リダイレクト有無、レスポンス差）が出るAPIは危険。"
+                });
+                return false;
+            }
 
-    if (patterns.false_based.test(input) && !patterns.true_based.test(input)) {
-        render({
-        border: "#c0392b",
-        titleColor: "#c0392b",
-        title: "✕ True/False ベース：False（疑似）",
-        body: "条件が偽になったと推測されます（結果0件相当）。",
-        extra: "学習ポイント：攻撃者は True と False の差分だけで内部情報を推測する。"
-        });
-        return false;
-    }
+            if (patterns.false_based.test(input) && !patterns.true_based.test(input)) {
+                render({
+                    border: "#c0392b",
+                    titleColor: "#c0392b",
+                    title: "✕ True/False ベース：False（疑似）",
+                    body: "条件が偽になったと推測されます（結果0件相当）。",
+                    extra: "学習ポイント：攻撃者は True と False の差分だけで内部情報を推測する。"
+                });
+                return false;
+            }
 
-    // 通常（疑似的に“差がない”状態）
-    render({
-        border: "#2980b9",
-        titleColor: "#2980b9",
-        title: "✔ 正常なリクエスト（疑似）",
-        body: "明確なブラインドSQLiパターンは検出されませんでした。",
-        extra: "ヒント：' OR 1=1 -- / ' AND 1=0 -- / ' UNION SELECT ... / sleep(3) を試してください。"
-    });
+            render({
+                border: "#2980b9",
+                titleColor: "#2980b9",
+                title: "✔ 正常なリクエスト（疑似）",
+                body: "明確なブラインドSQLiパターンは検出されませんでした。",
+                extra: "ヒント：' OR 1=1 -- / ' AND 1=0 -- / ' UNION SELECT ... / sleep(3) を試してください。"
+            });
 
-    return false;
-    }
+            return false;
+        }
     </script>
 
-
-<div style="text-align:center; margin-top: 20px;">
-    <a href="/home"
-       style="
-           display:inline-block;
-           background:#3498db;
-           color:white;
-           padding:10px 20px;
-           border-radius:6px;
-           text-decoration:none;
-           font-size:16px;
-           margin-bottom: 20px;
-       ">
-        ← ホームに戻る
-    </a>
-</div>
+    <div style="text-align:center; margin-top: 20px;">
+        <a href="/home"
+           style="
+               display:inline-block;
+               background:#3498db;
+               color:white;
+               padding:10px 20px;
+               border-radius:6px;
+               text-decoration:none;
+               font-size:16px;
+               margin-bottom: 20px;
+           ">
+            ← ホームに戻る
+        </a>
+    </div>
 
 </body>
 </html>
