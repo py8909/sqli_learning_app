@@ -94,9 +94,7 @@
             margin: 4px 0 8px;
         }
 
-        .section-body li {
-            margin-bottom: 2px;
-        }
+        .section-body li { margin-bottom: 2px; }
 
         /* ヒント */
         .hint-box {
@@ -122,9 +120,7 @@
             color: #2c3e50;
         }
 
-        .hint-toggle {
-            font-size: 18px;
-        }
+        .hint-toggle { font-size: 18px; }
 
         .hint-content {
             margin-top: 6px;
@@ -147,9 +143,7 @@
         }
 
         /* 右側フォームなど */
-        .form-group {
-            margin-bottom: 12px;
-        }
+        .form-group { margin-bottom: 12px; }
 
         label {
             display: block;
@@ -185,9 +179,7 @@
             font-size: 14px;
         }
 
-        .btn-primary:hover {
-            background: #2980b9;
-        }
+        .btn-primary:hover { background: #2980b9; }
 
         .alert-info {
             background: #ecf7ff;
@@ -211,12 +203,13 @@
             margin-bottom: 4px;
         }
 
-        .sql-danger {
-            border-left: 4px solid #e74c3c;
-        }
+        .sql-danger { border-left: 4px solid #e74c3c; }
+        .sql-safe   { border-left: 4px solid #27ae60; }
 
-        .sql-safe {
-            border-left: 4px solid #27ae60;
+        .mini-note {
+            font-size: 12px;
+            color: #555;
+            margin-top: 6px;
         }
     </style>
 </head>
@@ -288,8 +281,8 @@ cursor.execute(query, (username, password))
                     <ul>
                         <li>SQL文と値を<strong>絶対に文字列連結しない</strong></li>
                         <li>DBドライバが提供する<strong>プレースホルダ</strong>を必ず使う</li>
-                        <li>入力値は型チェック（長さ・形式）も行う</li>
-                        <li>ORM（SQLAlchemyなど）も内部でパラメトリクエリを使っている</li>
+                        <li>入力値は型チェック（長さ・形式）も行う（ただし入力検証だけでは不十分）</li>
+                        <li>ORM（SQLAlchemyなど）も内部でパラメトリクエリを使う</li>
                     </ul>
                     <p>この演習では、<strong>同じ攻撃ペイロードでも安全な実装なら防げる</strong>ことを体感してください。</p>
                 </div>
@@ -304,6 +297,18 @@ cursor.execute(query, (username, password))
                     <li>現場のコードレビューでも必ずチェックされるポイント</li>
                 </ul>
             </div>
+
+            <!-- 追加：SQLiを防ぐ方法（実装・運用） -->
+            <div class="section-title">4. SQLインジェクションを防ぐための方法（まとめ）</div>
+            <div class="section-body">
+                <ul>
+                    <li><strong>Prepared Statement / ORM を必須化</strong>（最重要：文字列連結禁止）</li>
+                    <li><strong>入力検証</strong>（型・長さ・許可文字の制限。防御の補助）</li>
+                    <li><strong>エラー秘匿</strong>（SQL/DB詳細を画面に表示しない）</li>
+                    <li><strong>最小権限</strong>（アプリ用DBユーザからDROP/ALTER等を剥奪）</li>
+                    <li><strong>監視・レート制限</strong>（自動化攻撃・総当たりの抑止）</li>
+                </ul>
+            </div>
         </div>
 
         <!-- 右：防御体験フォーム（ページ内完結） -->
@@ -316,12 +321,12 @@ cursor.execute(query, (username, password))
             <form onsubmit="return simulateSafeSQL(event)">
                 <div class="form-group">
                     <label for="username">ユーザ名</label>
-                    <input type="text" id="username" placeholder="例：admin, ' OR '1'='1 --" autocomplete="off">
+                    <input type="text" id="username" placeholder="例：admin / ' OR '1'='1 --" autocomplete="off">
                 </div>
 
                 <div class="form-group">
                     <label for="password">パスワード</label>
-                    <input type="password" id="password" placeholder="例：password, dummy" autocomplete="off">
+                    <input type="password" id="password" placeholder="例：password / dummy" autocomplete="off">
                 </div>
 
                 <button type="submit" class="btn-primary">防御の挙動を確認する</button>
@@ -345,65 +350,113 @@ cursor.execute(query, (username, password))
             }
         }
 
+        function normalize(s) {
+            return (s || "")
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, " ");
+        }
+
+        function safeFetch(url) {
+            // ルートが未実装でも画面を壊さない
+            return fetch(url, { method: "POST" }).catch(() => {});
+        }
+
         /* 防御挙動シミュレーション（ページ内完結） */
         function simulateSafeSQL(event) {
             event.preventDefault();
 
-            const user = document.getElementById("username").value;
-            const pass = document.getElementById("password").value;
+            const userRaw = document.getElementById("username").value;
+            const passRaw = document.getElementById("password").value;
+
+            const user = userRaw;
+            const pass = passRaw;
+
+            const u = normalize(userRaw);
+            const p = normalize(passRaw);
+
             const box  = document.getElementById("safe-result");
 
             const vulnerableSQL =
                 "SELECT * FROM users WHERE username = '" + user +
                 "' AND password = '" + pass + "'";
 
+            // DBごとにプレースホルダは異なるが、「概念」を学ぶ目的で %s 表記に統一
             const safeSQL = "SELECT * FROM users WHERE username = %s AND password = %s";
             const params  = `params = (${JSON.stringify(user)}, ${JSON.stringify(pass)})`;
 
-            /* 簡易的に「攻撃っぽい入力か」を判定 */
+            // よくあるSQLi系パターン（判定を少し強化）
+            const patterns = {
+                boolean_true: /\bor\b\s+(1\s*=\s*1|true)\b/,
+                quoted_true: /'1'\s*=\s*'1'|"1"\s*=\s*"1"/,
+                comment: /--|#|\/\*/,
+                union: /\bunion\b\s+\bselect\b/,
+                drop: /\bdrop\b\s+\btable\b/,
+                quote_only_break: /(^'?$)|(^".*$)/ // 参考（単純化）
+            };
+
             const attackLike =
-                /' *OR *'1'='1/i.test(user) ||
-                /' *OR *'1'='1/i.test(pass) ||
-                /or\s+1=1/i.test(user) ||
-                /or\s+1=1/i.test(pass);
+                patterns.boolean_true.test(u) ||
+                patterns.quoted_true.test(u) ||
+                patterns.comment.test(u) ||
+                patterns.union.test(u) ||
+                patterns.drop.test(u) ||
+                patterns.boolean_true.test(p) ||
+                patterns.quoted_true.test(p) ||
+                patterns.comment.test(p) ||
+                patterns.union.test(p) ||
+                patterns.drop.test(p);
+
+            // 疑似的な「脆弱実装なら起きうる現象」を説明するための分類
+            let vulnEffect = "通常の条件評価";
+            if (patterns.union.test(u) || patterns.union.test(p)) vulnEffect = "UNION により別の行/列を結合される可能性";
+            else if (patterns.drop.test(u) || patterns.drop.test(p)) vulnEffect = "破壊的操作（DROP等）が混入する可能性";
+            else if (patterns.boolean_true.test(u) || patterns.boolean_true.test(p) || patterns.quoted_true.test(u) || patterns.quoted_true.test(p)) vulnEffect = "条件が常に真になり認証バイパス等の可能性";
+            else if (patterns.comment.test(u) || patterns.comment.test(p)) vulnEffect = "コメントアウトで後続条件が無効化される可能性";
 
             let html = "";
 
             if (attackLike) {
-                fetch("/set_achievement/exercise8", { method: "POST" });
-                html += "<strong style='color:#e67e22;'>攻撃的な入力が検出されました。</strong><br><br>";
-                html += "脆弱な実装では、次のようなSQLが実行されてしまいます：<br>";
+                safeFetch("/set_achievement/exercise8");
+                safeFetch("/set_achievement/exercise_safe_sql");
+
+                html += "<strong style='color:#e67e22;'>攻撃的な入力（SQLiペイロード）が検出されました。</strong><br>";
+                html += "<div class='mini-note'>ポイント：防御版は「入力を拒否する」よりも「SQL構造を変えられない」ようにするのが本質です。</div>";
+
                 html += `<div class="sql-box sql-danger">
                             <div class="sql-title">❌ 脆弱なSQL（文字列連結）</div>
-                            <code>` + vulnerableSQL + `</code>
+                            <code>${vulnerableSQL}</code>
+                            <div class="mini-note">脆弱実装で起きうること：${vulnEffect}</div>
                          </div>`;
-                html += "<br>一方、安全な実装では入力は<strong>値としてエスケープ</strong>され、<br>";
-                html += "SQL構造は変化しません：<br>";
+
                 html += `<div class="sql-box sql-safe">
                             <div class="sql-title">✅ 安全なSQL（パラメトリクエリ）</div>
-                            <code>` + safeSQL + `</code><br>
-                            <code>` + params + `</code>
+                            <code>${safeSQL}</code><br>
+                            <code>${params}</code>
+                            <div class="mini-note">入力は「値」として扱われ、SQL構造（WHERE句など）は変化しません。</div>
                          </div>`;
-                html += "<br><strong>結果：</strong> 攻撃ペイロードは単なる文字列として扱われ、<br>SQLインジェクションは成立しません。";
 
-                /* 達成フラグ送信（防御体験を完了したとみなす） */
-                fetch("/set_achievement/exercise_safe_sql", { method: "POST" });
-
+                html += "<strong>結果：</strong> 攻撃ペイロードは単なる文字列として扱われ、SQLインジェクションは成立しません。";
             } else {
-                fetch("/set_achievement/exercise8", { method: "POST" });
-                html += "<strong style='color:#27ae60;'>通常のログイン試行です。</strong><br><br>";
-                html += "脆弱な実装では、問題がなくても将来的な攻撃リスクがあります：<br>";
+                safeFetch("/set_achievement/exercise8");
+
+                html += "<strong style='color:#27ae60;'>通常のログイン試行です。</strong><br>";
+                html += "<div class='mini-note'>通常入力でも、脆弱な書き方を残すと将来的な攻撃で破られる可能性があります。</div>";
+
                 html += `<div class="sql-box sql-danger">
                             <div class="sql-title">❌ 脆弱なSQL（文字列連結）</div>
-                            <code>` + vulnerableSQL + `</code>
+                            <code>${vulnerableSQL}</code>
+                            <div class="mini-note">今は問題が見えなくても、入力が変わるとSQL構造が変化し得ます。</div>
                          </div>`;
-                html += "<br>防御版では常にパラメトリクエリを使うことで、<br>";
-                html += "将来的に攻撃的な入力が来ても安全に処理できます：<br>";
+
                 html += `<div class="sql-box sql-safe">
                             <div class="sql-title">✅ 安全なSQL（パラメトリクエリ）</div>
-                            <code>` + safeSQL + `</code><br>
-                            <code>` + params + `</code>
+                            <code>${safeSQL}</code><br>
+                            <code>${params}</code>
+                            <div class="mini-note">攻撃入力が来てもSQL構造を固定できるため、防御が安定します。</div>
                          </div>`;
+
+                html += "<strong>次に試すと理解が深まる例：</strong> username に <code>' OR 1=1 --</code> を入れて比較してください。";
             }
 
             box.style.display = "block";
@@ -412,7 +465,7 @@ cursor.execute(query, (username, password))
             return false;
         }
     </script>
-    
+
 <div style="text-align:center; margin-top: 20px;">
     <a href="/home"
        style="

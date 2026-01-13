@@ -75,6 +75,7 @@
             font-weight: bold;
             margin-top: 12px;
             margin-bottom: 6px;
+            color: #34495e;
         }
 
         .section-body {
@@ -110,12 +111,14 @@
             padding: 10px 12px;
             border-radius: 8px;
             margin-top: 10px;
+            font-size: 13px;
         }
 
         .hint-header {
             display: flex;
             justify-content: space-between;
             cursor: pointer;
+            user-select: none;
         }
 
         .hint-content {
@@ -125,17 +128,26 @@
 
         /* ----- フォーム ----- */
         .form-group { margin-bottom: 12px; }
-        label { font-size: 13px; margin-bottom: 4px; display: block; }
+        label { font-size: 13px; margin-bottom: 4px; display: block; color: #34495e; }
         input[type="text"] {
             width: 100%; padding: 8px 10px;
             border-radius: 6px; border: 1px solid #ccd1d9;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.12);
         }
 
         .btn-primary {
             background: #3498db; color: white;
             padding: 8px 16px; border-radius: 6px;
             border: none; cursor: pointer;
+            font-size: 14px;
         }
+        .btn-primary:hover { background: #2980b9; }
 
         .alert-info {
             margin-top: 14px;
@@ -143,6 +155,7 @@
             background: #ecf7ff;
             border-radius: 6px;
             font-size: 12px;
+            color: #2c3e50;
         }
 
         @media (max-width: 768px) {
@@ -171,7 +184,7 @@
 
         <div class="section-title">1. 演習の目的</div>
         <div class="section-body">
-            動的解析は、攻撃ペイロードを実際に送信し、  
+            動的解析は、攻撃ペイロードを実際に送信し、
             <strong>レスポンスの変化</strong>から SQLインジェクションを検出する手法です。
             <br><br>
             この演習では、次の点を体験します：
@@ -186,12 +199,12 @@
         <div class="section-title">2. 動的解析の仕組み</div>
         <div class="section-body">
             典型的なSQLi検出ロジックは次の通りです：
-        <ul>
-            <li>ベースライン取得：正常な入力を送信し、レスポンスの状態を記録</li>
-            <li>攻撃ペイロード送信：SQLi攻撃を試みるペイロードを送信</li>
-            <li>差分解析：レスポンスのステータスコード、長さ、内容を比較</li>
-            <li>判定：差分が一定基準を超えた場合、SQLiの可能性ありと判断</li>
-        </ul>
+            <ul>
+                <li>ベースライン取得：正常な入力を送信し、レスポンスの状態を記録</li>
+                <li>攻撃ペイロード送信：SQLi攻撃を試みるペイロードを送信</li>
+                <li>差分解析：ステータスコード、長さ、内容を比較</li>
+                <li>判定：差分が一定基準を超えた場合、SQLiの可能性ありと判断</li>
+            </ul>
         </div>
 
         <div class="section-title">3. やってみよう</div>
@@ -226,31 +239,70 @@
             <ul>
                 <li>動的解析はアプリの「振る舞い」を観察する手法</li>
                 <li>静的解析と組み合わせると精度が向上する</li>
-                <li>実際の診断ツール（SQLMapなど）も差分解析を使っている</li>
+                <li>実際の診断ツールも差分解析（ベースライン比較）を使う</li>
                 <li>Time-based / Blind SQLi の検出にも応用可能</li>
             </ul>
         </div>
+
+        <!-- =========================================================
+             追加：SQLiを防ぐための方法（演習7向け）
+             ========================================================= -->
+        <div class="section-title">5. SQLインジェクションを防ぐための方法（対策）</div>
+        <div class="section-body">
+            動的解析は<strong>「検出」</strong>であり、対策（防御）は<strong>「作り方」</strong>で決まります。
+            実装・運用の観点では以下が基本です：
+            <ul>
+                <li><strong>パラメータ化クエリ（Prepared Statement）/ ORM</strong> を必須化（文字列連結でSQLを作らない）</li>
+                <li><strong>入力検証</strong>：型・長さ・許可文字を制限（ただし“入力検証だけ”では防げない）</li>
+                <li><strong>エラーの秘匿</strong>：DB/SQL詳細を画面に出さない（本番は共通エラーページ）</li>
+                <li><strong>最小権限</strong>：アプリ用DBユーザに不要な権限（DROP/CREATE等）を持たせない</li>
+                <li><strong>監視・制限</strong>：WAF、レート制限、異常ペイロードのログ/検知（自動攻撃に効く）</li>
+            </ul>
+        </div>
+
+        <div class="section-title">6. 安全な実装例（Prepared Statement / ORM）</div>
+        <pre class="code-block">
+# 悪い例（SQLを文字列連結で構築）
+query = "SELECT * FROM users WHERE name = '" + q + "'"
+cursor.execute(query)
+
+# 良い例①（DB-API：プレースホルダ）
+cursor.execute("SELECT * FROM users WHERE name = ?", (q,))
+
+# 良い例②（SQLAlchemy ORM：値はバインドされる）
+rows = User.query.filter(User.name == q).all()
+        </pre>
+
+        <div class="section-title">7. 動的解析を活かした“守り”の考え方</div>
+        <div class="section-body">
+            動的解析の結果は、次の改善に直結させると効果的です：
+            <ul>
+                <li>検出したパラメータ箇所を<strong>最優先でパラメータ化/ORM化</strong></li>
+                <li>差分が出る原因（エラー露出、レスポンス肥大）を<strong>共通化・秘匿</strong></li>
+                <li>“同じ攻撃が繰り返せる”場合は<strong>レート制限・遮断ルール</strong>を追加</li>
+            </ul>
+        </div>
+        <!-- 追加ここまで -->
     </div>
 
     <!-- 右：動的解析デモフォーム -->
-        <div class="card">
+    <div class="card">
         <div class="card-title">動的解析デモ（ページ内シミュレーション）</div>
         <div class="card-subtitle">
-        ペイロードを送信し、レスポンスの差分を疑似的に解析します。
+            ペイロードを入力し、レスポンス差分を疑似的に解析します。
         </div>
 
-    <div class="form-group">
-        <label for="payload">攻撃ペイロード</label>
-        <input type="text" id="payload" placeholder="例：' OR '1'='1 --" autocomplete="off">
+        <div class="form-group">
+            <label for="payload">攻撃ペイロード</label>
+            <input type="text" id="payload" placeholder="例：' OR '1'='1 --" autocomplete="off">
+        </div>
+
+        <button class="btn-primary" onclick="runDynamicTest()">解析を実行</button>
+
+        <div id="dyn-result" class="alert-info" style="display:none; margin-top:14px;"></div>
     </div>
 
-    <button class="btn-primary" onclick="runDynamicTest()">解析を実行</button>
-
-    <div id="dyn-result" class="alert-info" style="display:none; margin-top:14px;"></div>
 </div>
-
-</div>
-
 
 <script>
     function toggleHint() {
@@ -265,74 +317,96 @@
         }
     }
 
+    // 入力揺れ吸収（大小文字・空白）
+    function normalize(s) {
+        return (s || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ");
+    }
+
     function runDynamicTest() {
+        const raw = document.getElementById("payload").value.trim();
+        const input = normalize(raw);
+        const result = document.getElementById("dyn-result");
 
-    const input = document.getElementById("payload").value.trim();
-    const result = document.getElementById("dyn-result");
+        if (!raw) {
+            result.style.display = "block";
+            result.innerHTML = "⚠ ペイロードを入力してください。";
+            return;
+        }
 
-    if (!input) {
+        /* --- ベースライン（正常入力の想定） --- */
+        const baseline = {
+            status: 200,
+            length: 52,
+            body: "OK"
+        };
+
+        /* --- 疑似攻撃判定ロジック（優先順位あり） --- */
+        let detected = false;
+        let status = baseline.status;
+        let length = baseline.length;
+
+        const notes = [];
+
+        // 判定パターン
+        const patterns = {
+            // 破壊的/危険操作・UNIONは「重大」扱い（ステータス変化）
+            union_or_drop: /\b(union\s+select|drop\s+table|;\s*drop|;\s*--|;\s*#)/i,
+
+            // Boolean（全件取得/レスポンス肥大想定）
+            boolean_true: /\b(or|and)\b.*\b(1\s*=\s*1|true|'1'\s*=\s*'1'|"1"\s*=\s*"1")\b/i,
+
+            // エラー誘発（クォートやコメント等で構文崩し）
+            error_hint: /['"]|--|#|\/\*/i
+        };
+
+        // 1) 重大：UNION / DROP / ; を含む → 500想定
+        if (patterns.union_or_drop.test(raw)) {
+            status = 500;
+            detected = true;
+            notes.push("・ステータスコードが 500 に変化（重大なSQL改変の可能性）");
+        }
+
+        // 2) Boolean True → レスポンス長が増える想定（ベースラインとの差分）
+        if (patterns.boolean_true.test(raw)) {
+            length = 130;
+            detected = true;
+            notes.push("・レスポンス長が通常より大きい（全件取得/結果肥大の可能性）");
+        }
+
+        // 3) エラー露出（ただしboolean_trueと被った場合は補足に留める）
+        if (patterns.error_hint.test(raw) && !patterns.boolean_true.test(raw)) {
+            detected = true;
+            notes.push("・SQL構文エラーの可能性（エラーメッセージ露出の危険）");
+        }
+
+        /* --- 結果の生成 --- */
+        let html = "<strong>解析結果：</strong><br><br>";
+        html += `● ベースライン：status=${baseline.status}, length=${baseline.length}<br>`;
+        html += `● 今回：status=${status}, length=${length}<br>`;
+        html += "<br>";
+
+        if (detected) {
+            // 達成記録（あなたの既存ルーティングに合わせて）
+            fetch("/set_achievement/exercise7", { method: "POST" }).catch(() => {});
+            fetch("/set_achievement/exercise_dynamic", { method: "POST" }).catch(() => {});
+
+            html += `<strong style="color:#c0392b;">SQLインジェクションの可能性あり</strong><br><br>`;
+            html += notes.map(n => "✔ " + n).join("<br>");
+            html += "<br><br>";
+            html += "<strong>解釈：</strong>差分（ステータス/長さ/エラー兆候）が確認できるため、SQLiの疑いが高い状態です。";
+        } else {
+            html += `<strong style="color:#27ae60;">問題なし（正常動作）</strong><br>`;
+            html += "顕著な差分は検出されませんでした。";
+        }
+
         result.style.display = "block";
-        result.innerHTML = "⚠ ペイロードを入力してください。";
-        return;
+        result.innerHTML = html;
     }
-
-    /* --- ベースライン（正常入力の想定） --- */
-    const baseline = {
-        status: 200,
-        length: 52,
-        body: "OK"
-    };
-
-    /* --- 疑似攻撃判定ロジック --- */
-    let detected = false;
-    let status = baseline.status;
-    let length = baseline.length;
-    let message = "";
-
-    // ステータス変化
-    if (/union|drop|;/i.test(input)) {
-        status = 500;
-        detected = true;
-        message += "・ステータスコードが 500 に変化<br>";
-    }
-
-    // レスポンス長変化
-    if (/or\s*'1'='1|or\s*1=1/i.test(input)) {
-        length = 130;
-        detected = true;
-        message += "・レスポンス長が通常より大きい（= データが漏れた可能性）<br>";
-    }
-
-    // エラー露出
-    if (/'|--|"/.test(input) && !/1=1/.test(input)) {
-        detected = true;
-        message += "・SQL構文エラーの可能性（エラーメッセージ露出）<br>";
-    }
-
-    /* --- 結果の生成 --- */
-    let html = "<strong>解析結果：</strong><br><br>";
-    html += `● ステータスコード：${status}<br>`;
-    html += `● レスポンス長：${length}<br>`;
-    html += "<br>";
-
-    if (detected) {
-        fetch("/set_achievement/exercise7", { method: "POST" });
-        html += `<strong style="color:#c0392b;">SQLインジェクションの可能性あり</strong><br><br>${message}`;
-
-        /* 達成記録 */
-        fetch("/set_achievement/exercise_dynamic", { method: "POST" });
-
-    } else {
-        html += `<strong style="color:#27ae60;">問題なし（正常動作）</strong><br>`;
-        html += "差分は検出されませんでした。";
-    }
-
-    /* 表示 */
-    result.style.display = "block";
-    result.innerHTML = html;
-}
 </script>
-    
+
 <div style="text-align:center; margin-top: 20px;">
     <a href="/home"
        style="
