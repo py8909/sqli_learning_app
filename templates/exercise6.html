@@ -28,6 +28,7 @@
             color: #bdc3c7;
             margin-top: 4px;
         }
+
         /* ----- レイアウト ----- */
         .container {
             max-width: 1100px;
@@ -280,17 +281,64 @@ def search():
                     <li>・自動ツールと人間のレビューを組み合わせることが重要</li>
                 </ul>
             </div>
+
+            <div class="section-title">5. SQLインジェクションを防ぐための方法（対策）</div>
+            <div class="section-body">
+                静的解析の目的は「危険な書き方を早期に排除すること」です。SQLi対策は、実装面だけでなく
+                <strong>開発プロセス（レビュー/ツール/運用）</strong>も含めて設計します。
+                <ul>
+                    <li><strong>パラメータ化クエリ（Prepared Statement）/ ORM</strong>を標準にする（文字列連結禁止）</li>
+                    <li><strong>入力検証（バリデーション）</strong>で不正な形式や長すぎる入力を排除する</li>
+                    <li><strong>最小権限</strong>：アプリ用DBユーザに DROP/ALTER 等の権限を与えない</li>
+                    <li><strong>エラー情報の抑制</strong>：本番でスタックトレースやSQL詳細を表示しない</li>
+                    <li><strong>レビュー + 静的解析ツール</strong>をCIに組み込み、危険パターンを自動検出する</li>
+                </ul>
+            </div>
+
+            <div class="section-title">6. 安全な実装例（Prepared Statement / ORM）</div>
+            <pre class="code-block">
+# 悪い例（文字列連結：SQL構造が壊れうる）
+query = "SELECT * FROM users WHERE username = '" + username + "'"
+cursor.execute(query)
+
+# 良い例①（プレースホルダ：DB-API）
+cursor.execute(
+    "SELECT * FROM users WHERE username = ? AND password = ?",
+    (username, password)
+)
+
+# 良い例②（SQLAlchemy ORMの例：値がバインドされる）
+user = User.query.filter_by(username=username).first()
+# ※ パスワードはハッシュ照合（DBで平文比較しない）
+            </pre>
+
+            <div class="section-title">7. 静的解析で見るべき「危険パターン」チェックリスト</div>
+            <div class="section-body">
+                静的解析（人のレビュー含む）では、次の組み合わせを重点的に探します。
+                <ul>
+                    <li><strong>ソース（入力）</strong>：<code>request.args</code>, <code>request.form</code>, JSON, Cookie など</li>
+                    <li><strong>加工（危険）</strong>：<code>"..." + var</code>, f-string, <code>format()</code> でSQLを組み立てる</li>
+                    <li><strong>シンク（実行）</strong>：<code>cursor.execute()</code>, <code>db.execute()</code>, ORMのraw SQL実行</li>
+                </ul>
+                「入力 → 文字列連結 → SQL実行」が揃っていれば、SQLiの疑いが高いと判断できます。
+            </div>
+
+            <div class="section-title">8. まとめ</div>
+            <div class="section-body">
+                SQLi対策は「入力を消毒する」よりも、<strong>SQLと値を分離（パラメータ化）する</strong>ことが本質です。
+                静的解析は、そのルールをコード全体に適用できているかを確認する強力な手段になります。
+            </div>
         </div>
 
         <!-- 右：脆弱コード＋メモ欄 -->
         <div class="card">
-    <div class="card-title">脆弱コード（演習用）</div>
-    <div class="card-subtitle">
-        次のコードから、<strong>SQLインジェクションの可能性がある行</strong>を探して解析してみましょう。
-    </div>
+            <div class="card-title">脆弱コード（演習用）</div>
+            <div class="card-subtitle">
+                次のコードから、<strong>SQLインジェクションの可能性がある行</strong>を探して解析してみましょう。
+            </div>
 
-    <!-- 表示用コードブロック（行番号付き） -->
-    <pre class="code-block">
+            <!-- ★重要：id="code-block" を付与（JSが参照するため） -->
+            <pre id="code-block" class="code-block">
 1 | @app.route("/login", methods=["POST"])
 2 | def login():
 3 |     username = request.form.get("username", "")
@@ -307,19 +355,17 @@ def search():
 14|     else:
 15|         flash("ログインに失敗しました")
 16|         return redirect("/login")
-    </pre>
+            </pre>
 
-    <div class="form-group">
-        <label for="notes">気づいた危険箇所を記入してみましょう。</label>
-        <textarea id="notes"
-            placeholder="例：username/password の入力がそのままクエリに連結されているためSQLiの危険あり。"></textarea>
-    </div>
+            <div class="form-group">
+                <label for="notes">気づいた危険箇所を記入してみましょう。</label>
+                <textarea id="notes"
+                    placeholder="例：username/password の入力がそのままクエリに連結されているためSQLiの危険あり。"></textarea>
+            </div>
 
-    <button class="btn-primary" onclick="runStaticAnalysis()">静的解析を実行する</button>
+            <button class="btn-primary" onclick="runStaticAnalysis()">静的解析を実行する</button>
 
-    <div id="analysis-result" class="alert-info" style="display:none; margin-top:14px;"></div>
-</div>
-
+            <div id="analysis-result" class="alert-info" style="display:none; margin-top:14px;"></div>
         </div>
 
     </div>
@@ -337,85 +383,88 @@ def search():
             }
         }
 
+        let highlighted = false;
+
         function runStaticAnalysis() {
+            const resultBox = document.getElementById("analysis-result");
+            const codeBlock = document.getElementById("code-block");
 
-    const codeLines = [
-        "username = request.form.get(\"username\", \"\")",
-        "password = request.form.get(\"password\", \"\")",
-        "\"SELECT * FROM users WHERE username = '\" + username",
-        "cursor.execute(query)"
-    ];
+            resultBox.style.display = "block";
 
-    const resultBox = document.getElementById("analysis-result");
-    const codeBlock = document.getElementById("code-block");
+            if (!codeBlock) {
+                resultBox.innerHTML = "<strong>エラー：</strong><br>コード表示領域（id='code-block'）が見つかりません。";
+                return;
+            }
 
-    let warnings = [];
+            const text = codeBlock.textContent;
 
-    /* --- 危険パターンを検索（超簡易ルール） --- */
-    if (codeBlock.textContent.includes("username = request.form")) {
-        warnings.push("・ユーザ入力（username）が取得されている");
-    }
-    if (codeBlock.textContent.includes("password = request.form")) {
-        warnings.push("・ユーザ入力（password）が取得されている");
-    }
-    if (codeBlock.textContent.includes("+ username") ||
-        codeBlock.textContent.includes("+ password")) {
-        warnings.push("・ユーザ入力が SQL 文字列に直接連結されている（SQLiの危険）");
-    }
-    if (codeBlock.textContent.includes("cursor.execute(query)")) {
-        warnings.push("・危険なクエリが直接実行されている");
-    }
+            let warnings = [];
 
-    /* --- 結果を表示 --- */
-    resultBox.style.display = "block";
+            /* --- 危険パターンを検索（超簡易ルール） --- */
+            if (text.includes("username = request.form")) {
+                warnings.push("・ユーザ入力（username）が取得されている");
+            }
+            if (text.includes("password = request.form")) {
+                warnings.push("・ユーザ入力（password）が取得されている");
+            }
+            if (text.includes("+ username") || text.includes("+ password")) {
+                warnings.push("・ユーザ入力が SQL 文字列に直接連結されている（SQLiの危険）");
+            }
+            if (text.includes("cursor.execute(query)")) {
+                warnings.push("・危険なクエリが直接実行されている");
+            }
 
-    if (warnings.length > 0) {
+            /* --- 結果を表示 --- */
+            if (warnings.length > 0) {
+                // 達成登録は exercise6 のみに統一（余計なキー混入を防ぐ）
+                fetch("/set_achievement/exercise6", { method: "POST" }).catch(() => {});
 
-        fetch("/set_achievement/exercise6", { method: "POST" });
+                resultBox.innerHTML =
+                    "<strong>解析結果：</strong><br>" +
+                    "以下の脆弱箇所が検出されました：<br><br>" +
+                    warnings.map(w => "✔ " + w).join("<br>");
 
-        /* 成功（＝脆弱性を見つけた）扱い → 達成保存 */
-        fetch("/set_achievement/exercise_static", { method: "POST" });
+                highlightDangerousLines();
+            } else {
+                resultBox.innerHTML =
+                    "<strong>解析結果：</strong><br>脆弱箇所は検出されませんでした。";
+            }
+        }
 
-        resultBox.innerHTML =
-            "<strong>解析結果：</strong><br>" +
-            "以下の脆弱箇所が検出されました：<br><br>" +
-            warnings.map(w => "✔ " + w).join("<br>");
-    } else {
-        resultBox.innerHTML =
-            "<strong>解析結果：</strong><br>脆弱箇所は検出されませんでした。";
-    }
+        /* ====== 危険行のハイライト（1回だけ実行） ====== */
+        function highlightDangerousLines() {
+            if (highlighted) return;
 
-    /* --- コードの危険行をハイライト（簡易） --- */
-    highlightDangerousLines();
-}
+            const pre = document.getElementById("code-block");
+            if (!pre) return;
 
-/* ====== 危険行のハイライト ====== */
-function highlightDangerousLines() {
-    const pre = document.getElementById("code-block");
-    let html = pre.textContent
-        .replace(/6 \|(.+)/, `<span style="background:#ffe5e5;">6 |$1</span>`)
-        .replace(/7 \|(.+)/, `<span style="background:#ffe5e5;">7 |$1</span>`)
-        .replace(/9 \|(.+)/, `<span style="background:#ffe5e5;">9 |$1</span>`);
+            // 行頭一致（mフラグ）で確実に該当行をハイライト
+            let html = pre.textContent
+                .replace(/^6 \|(.+)$/m, `<span style="background:#ffe5e5;">6 |$1</span>`)
+                .replace(/^7 \|(.+)$/m, `<span style="background:#ffe5e5;">7 |$1</span>`)
+                .replace(/^9 \|(.+)$/m, `<span style="background:#ffe5e5;">9 |$1</span>`);
 
-    pre.innerHTML = html;
-}
+            pre.innerHTML = html;
+            highlighted = true;
+        }
     </script>
 
-<div style="text-align:center; margin-top: 20px;">
-    <a href="/home"
-       style="
-           display:inline-block;
-           background:#3498db;
-           color:white;
-           padding:10px 20px;
-           border-radius:6px;
-           text-decoration:none;
-           font-size:16px;
-           margin-bottom: 20px;
-       ">
-        ← ホームに戻る
-    </a>
-</div>
+    <div style="text-align:center; margin-top: 20px;">
+        <a href="/home"
+           style="
+               display:inline-block;
+               background:#3498db;
+               color:white;
+               padding:10px 20px;
+               border-radius:6px;
+               text-decoration:none;
+               font-size:16px;
+               margin-bottom: 20px;
+           ">
+            ← ホームに戻る
+        </a>
+    </div>
 
 </body>
 </html>
+
