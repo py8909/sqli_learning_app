@@ -12,7 +12,6 @@
             padding: 0;
         }
 
-        /* ----- ヘッダー ----- */
         .header {
             background: #2c3e50;
             color: white;
@@ -29,7 +28,6 @@
         top: 12px;
         }
 
-    /* ハンバーガーアイコン */
         .hamburger {
             font-size: 26px;
             cursor: pointer;
@@ -37,12 +35,10 @@
             padding: 4px 6px;
         }
 
-        /* hover時に menu を表示（ここが重要） */
         .menu-wrapper:hover .menu {
             display: block;
         }
 
-        /* メニュー内容 */
         .menu {
             display: none;
             position: absolute;
@@ -55,7 +51,6 @@
             width: 180px;
         }
 
-        /* メニューの各リンク */
         .menu a {
             all: unset;
             display: block;
@@ -77,14 +72,12 @@
             transform: translateY(-2px);
         }
 
-        /* ----- メインエリア ----- */
         .main-area {
             padding: 20px 100px;
             max-width: 900px;
             margin: 0 auto;
         }
 
-        /* セクションタイトル */
         .section-title {
             margin-top: 50px;
             margin-bottom: 10px;
@@ -94,7 +87,6 @@
             padding-left: 10px;
         }
 
-        /* カードグリッド */
         .card-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -118,7 +110,6 @@
             box-shadow: 0 4px 14px rgba(0,0,0,0.15);
         }
 
-        /* ✔マークのスタイル */
         .done-mark {
             color: #27ae60;
             font-weight: bold;
@@ -129,7 +120,6 @@
 
 <body>
 
-    <!-- ヘッダー -->
     <div class="header">
         SQLi Learning
         <div class="menu-wrapper">
@@ -141,17 +131,13 @@
                     管理者画面
                 </a>
             {% endif %}
-            <a href="/setlang/ja">日本語</a>
-            <a href="/setlang/en">English</a>
             <a href="/login">ログイン画面</a>
         </div>
     </div>
     </div>
 
-    <!-- メイン -->
     <div class="main-area">
 
-        <!-- イントロダクション -->
         <h2 class="section-title">イントロダクション</h2>
 
         <div class="card-grid">
@@ -178,7 +164,6 @@
 
         </div>
 
-        <!-- 演習メニュー -->
         <h2 class="section-title">演習メニュー</h2>
 
         <div class="card-grid">

@@ -11,7 +11,6 @@
         margin: 0; padding: 0;
     }
 
-    /* --- Header --- */
     .header {
         background: #2c3e50;
         color: white;
@@ -54,14 +53,12 @@
             background: #d0d6db;
         }
 
-    /* Layout */
     .container {
         max-width: 900px;
         margin: 30px auto 40px;
         padding: 0 15px;
     }
 
-    /* Card */
     .card {
         background: #fff;
         border-radius: 10px;
@@ -147,7 +144,6 @@
 
 <body>
 
-<!-- Header -->
 <div class="header">
     SQLi Learning
     <div class="header-sub">イントロダクション &gt; イントロダクション確認テスト
@@ -175,9 +171,7 @@
 </div>
 
 <script>
-/* ===================================
-   小テストデータ（問題＋正答＋解説）
-   =================================== */
+
 const questions = [
     {
         q: "SQLインジェクションとは何ですか？",
@@ -312,7 +306,6 @@ const questions = [
     }
 ];
 
-/* ===== ランダムシャッフル ===== */
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
         let r = Math.floor(Math.random() * (i + 1));
@@ -323,7 +316,6 @@ shuffle(questions);
 
 const form = document.getElementById("quizForm");
 
-/* ===== 問題を描画 ===== */
 questions.forEach((q, idx) => {
     let html = `<div id="qhead${idx}" class="question">${idx+1}. ${q.q}</div>`;
 
@@ -349,7 +341,7 @@ questions.forEach((q, idx) => {
 function checkAnswers() {
     const finishBtn = document.getElementById("finishBtn");
 
-    let score = 0;  // 得点カウンター
+    let score = 0; 
 
     questions.forEach((q, idx) => {
         const userAnswers = [];
@@ -361,8 +353,6 @@ function checkAnswers() {
 
         const ua = userAnswers.sort().join(",");
         const aa = q.answer.sort().join(",");
-
-        /* --- 正誤表示 --- */
         const questionHeader = document.querySelector(`#qhead${idx}`);
         if (ua === aa) {
             questionHeader.innerHTML += ` <span class="correct">〇 正解</span>`;
@@ -371,26 +361,20 @@ function checkAnswers() {
             questionHeader.innerHTML += ` <span class="incorrect">✕ 不正解</span>`;
         }
 
-        /* --- 選択肢ハイライト処理 --- */
         const allOptions = document.querySelectorAll(
             `input[name='q${idx}'], input[name='q${idx}[]']`
         );
 
         allOptions.forEach(opt => {
             const optDiv = opt.closest(".option");
-
-            // 正解の選択肢
             if (q.answer.includes(opt.value)) {
                 optDiv.classList.add("correct-option");
             }
-
-            // 不正解で選択したもの
             if (opt.checked && !q.answer.includes(opt.value)) {
                 optDiv.classList.add("incorrect-option");
             }
         });
 
-        /* --- 解説表示 --- */
         const ex = document.getElementById(`ex${idx}`);
         ex.style.display = "block";
         ex.innerHTML = `
@@ -401,20 +385,17 @@ function checkAnswers() {
         `;
     });
 
-    /* --- 全選択肢を無効化 --- */
     const allInputs = document.querySelectorAll("input");
     allInputs.forEach(i => i.disabled = true);
 
     finishBtn.disabled = true;
 
-    /* --- 得点表示 --- */
     document.getElementById("resultArea").innerHTML = `
         <div class="result">
             <h3>得点：${score} / ${questions.length} 点</h3>
         </div>
     `;
 
-    /* --- 満点だった場合のみ進捗をDBに保存 --- */
     if (score === questions.length) {
         fetch("/set_achievement/intro_quiz", {
             method: "POST",
@@ -422,13 +403,12 @@ function checkAnswers() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                exercise: "intro_quiz"   // ← このテストに対応する演習名
+                exercise: "intro_quiz" 
             })
         })
         .then(res => res.json())
         .then(data => {
             console.log("進捗登録:", data);
-            // 画面にも表示
             const doneMsg = document.createElement("div");
             doneMsg.style.color = "#27ae60";
             doneMsg.style.marginTop = "10px";
@@ -444,8 +424,6 @@ function checkAnswers() {
         document.getElementById("resultArea").appendChild(warnMsg);
     }
 
-
-    /* --- もう一度トライするボタン --- */
     const retryBtn = document.createElement("button");
     retryBtn.textContent = "もう一度トライする";
     retryBtn.className = "btn-primary";

@@ -10,22 +10,14 @@ import json
 from sqlalchemy import desc
 
 app = Flask(__name__)
-
-# -------------------------
-# SECRET_KEY（必須）
-# -------------------------
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 if not app.config["SECRET_KEY"]:
     raise RuntimeError("SECRET_KEY is not set")
 
-# -------------------------
-# DATABASE_URL（必須）
-# -------------------------
 db_url = os.environ.get("DATABASE_URL")
 if not db_url:
     raise RuntimeError("DATABASE_URL is not set")
 
-# Render/Heroku 系で postgres:// の場合の補正（重要）
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
@@ -35,9 +27,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-# ============================================================
-# Models
-# ============================================================
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -68,9 +57,7 @@ class QuizAnswer(db.Model):
     attempt_id = db.Column(db.Integer, db.ForeignKey("quiz_attempts.id", ondelete="CASCADE"), nullable=False)
     question_id = db.Column(db.String(50), nullable=False)
     is_correct = db.Column(db.Boolean, nullable=False)
-
-    # 追加：ユーザーの回答（複数選択を想定してJSON文字列にする）
-    selected = db.Column(db.Text, nullable=False, default="[]")  # 例: '["A","C"]'
+    selected = db.Column(db.Text, nullable=False, default="[]")
 
 
 
@@ -92,9 +79,6 @@ EXERCISE_CATEGORY = {
     "exercise9": "Comprehension Quiz",
 }
 
-# ============================================================
-# Routes
-# ============================================================
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
@@ -152,13 +136,9 @@ def admin_dashboard():
 
     users = User.query.order_by(User.username).all()
     progresses = Progress.query.all()
-
-    # user_id → { exercise: done }
     progress_map = {}
     for p in progresses:
         progress_map.setdefault(p.user_id, {})[p.exercise] = p.done
-
-    # 管理画面用データ
     user_rows = []
     for u in users:
         user_rows.append({
@@ -202,8 +182,6 @@ def profile():
         if not new_username:
             flash("ユーザー名を入力してください")
             return redirect("/profile")
-
-        # username 更新（重複チェック）
         if new_username != user.username and User.query.filter_by(username=new_username).first():
             flash("このユーザー名はすでに使用されています")
             return redirect("/profile")
@@ -301,10 +279,10 @@ def submit_quiz():
     score = 0
     attempt = QuizAttempt(user_id=user.id, quiz_id=quiz_id, attempt_no=attempt_no, score=0)
     db.session.add(attempt)
-    db.session.flush()  # attempt.id 確定
+    db.session.flush() 
 
     for qid, correct_answers in QUIZ_ANSWER_KEY.items():
-        user_ans = request.form.getlist(qid)  # 複数選択対応
+        user_ans = request.form.getlist(qid) 
         is_correct = set(user_ans) == set(correct_answers)
         if is_correct:
             score += 1
@@ -327,7 +305,6 @@ def admin_user_detail(username):
 
     user = User.query.filter_by(username=username).first_or_404()
 
-    # 試行の概要
     attempt_summary = (
         db.session.query(
             func.count(QuizAttempt.id).label("attempts"),
@@ -344,7 +321,6 @@ def admin_user_detail(username):
         .all()
     )
 
-    # 誤答ログ（選択肢もDBにある前提）
     wrong_rows = (
         db.session.query(QuizAnswer.question_id, QuizAnswer.selected, QuizAttempt.attempt_no, QuizAttempt.created_at)
         .join(QuizAttempt, QuizAttempt.id == QuizAnswer.attempt_id)
@@ -353,7 +329,6 @@ def admin_user_detail(username):
         .all()
     )
 
-    # question_id ごとに「何を選んで間違えたか」を集計
     wrong_by_q = defaultdict(lambda: {"wrong_count": 0, "selected_counts": defaultdict(int), "examples": []})
 
     for qid, selected_json, attempt_no, created_at in wrong_rows:
@@ -367,7 +342,6 @@ def admin_user_detail(username):
         key = ",".join(selected_list) if selected_list else "(未選択)"
         wrong_by_q[qid]["selected_counts"][key] += 1
 
-        # 直近の例を少し残す（任意）
         if len(wrong_by_q[qid]["examples"]) < 5:
             wrong_by_q[qid]["examples"].append({
                 "attempt_no": attempt_no,
@@ -375,7 +349,6 @@ def admin_user_detail(username):
                 "created_at": created_at,
             })
 
-    # テンプレートで扱いやすい形へ
     wrong_stats = []
     for qid, v in wrong_by_q.items():
         selected_counts_sorted = sorted(v["selected_counts"].items(), key=lambda x: x[1], reverse=True)
@@ -398,7 +371,6 @@ def admin_user_detail(username):
         wrong_stats=wrong_stats
     )
 
-# --- intro pages ---
 @app.route("/intro_sql")
 def intro_sql():
     return render_template("intro_sql.html")

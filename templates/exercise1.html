@@ -11,7 +11,6 @@
             padding: 0;
         }
 
-        /* ----- ヘッダー ----- */
         .header {
             background: #2c3e50;
             color: white;
@@ -28,7 +27,6 @@
             margin-top: 4px;
         }
 
-        /* ----- レイアウト ----- */
         .container {
             max-width: 1100px;
             margin: 25px auto 40px;
@@ -45,7 +43,6 @@
             }
         }
 
-        /* ----- カード ----- */
         .card {
             background: #ffffff;
             border-radius: 10px;
@@ -75,7 +72,6 @@
             margin-right: 6px;
         }
 
-        /* ----- セクション ----- */
         .section-title {
             font-size: 15px;
             font-weight: bold;
@@ -100,7 +96,6 @@
             overflow-x: auto;
         }
 
-        /* ----- ヒント ----- */
         .hint-box {
             background: #f9fbff;
             border-radius: 8px;
@@ -131,7 +126,6 @@
             font-size: 13px;
         }
 
-        /* ----- フォーム ----- */
         .form-group {
             margin-bottom: 12px;
         }
@@ -172,7 +166,6 @@
             background: #2980b9;
         }
 
-        /* 結果表示 */
         #login-result {
             margin-top: 12px;
             padding: 10px;
@@ -185,7 +178,6 @@
 
 <body>
 
-    <!-- ヘッダー -->
     <div class="header">
         SQLi Learning
         <div class="header-sub">演習メニュー &gt; ログインSQLi体験</div>
@@ -193,7 +185,6 @@
 
     <div class="container">
 
-        <!-- 左パネル -->
         <div class="card">
             <div class="card-title">演習1：ログイン画面でSQLインジェクション攻撃を体験しよう</div>
             <div class="card-subtitle">
@@ -391,7 +382,6 @@ function fakeLogin(event) {
 
     if (p.includes("substr") || p.includes("select")) {
 
-        // 1文字目の推測（仮データ）
         const secretFirst = "s";
         const m = p.match(/=['"]?([a-z0-9])/i);
         const guess = m ? m[1] : null;

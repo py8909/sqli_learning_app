@@ -12,7 +12,6 @@
             padding: 0;
         }
 
-        /* ----- ヘッダー ----- */
         .header {
             background: #2c3e50;
             color: white;
@@ -29,7 +28,6 @@
             margin-top: 4px;
         }
 
-        /* ----- レイアウト ----- */
         .container {
             max-width: 1100px;
             margin: 25px auto 40px;
@@ -39,7 +37,6 @@
             gap: 20px;
         }
 
-        /* ----- カード ----- */
         .card {
             background: #ffffff;
             border-radius: 10px;
@@ -70,7 +67,6 @@
             margin-right: 6px;
         }
 
-        /* セクション */
         .section-title {
             font-size: 15px;
             font-weight: bold;
@@ -100,7 +96,6 @@
             overflow-x: auto;
         }
 
-        /* ヒント */
         .hint-box {
             background: #f9fbff;
             border-radius: 8px;
@@ -148,7 +143,6 @@
             overflow-x:auto;
         }
 
-        /* フォーム */
         .form-group {
             margin-bottom: 12px;
         }
@@ -202,7 +196,6 @@
 
 <body>
 
-    <!-- ヘッダー -->
     <div class="header">
         SQLi Learning
         <div class="header-sub">演習メニュー &gt; ブラインド SQLインジェクション体験</div>
@@ -210,7 +203,6 @@
 
     <div class="container">
 
-        <!-- 左：説明カード -->
         <div class="card">
             <div class="card-title">演習5：ブラインド SQLインジェクション攻撃を体験しよう</div>
             <div class="card-subtitle">
@@ -256,7 +248,6 @@ return "OK"
                 応答の <strong>速度・長さ・挙動の違い</strong> を観察しましょう。
             </div>
 
-            <!-- ヒント -->
             <div class="hint-box">
                 <div class="hint-header" onclick="toggleHint()">
                     <div class="hint-title">ヒントを見る（クリックで展開）</div>
@@ -285,9 +276,6 @@ return "OK"
                 </ul>
             </div>
 
-            <!-- =========================================================
-                 追加：SQLiを防ぐための方法（演習5向け）
-                 ========================================================= -->
             <div class="section-title">5. SQLインジェクションを防ぐための方法（対策）</div>
             <div class="section-body">
                 ブラインドSQLiは「結果を見せない」だけでは防げません。防御の本質は、
@@ -326,10 +314,8 @@ rows = User.query.filter(User.name == q).all()
                 ブラインドSQLiは「自動化」が前提になりやすいため、
                 <strong>レート制限と検知</strong>は実務上非常に有効です。
             </div>
-            <!-- 追加ここまで -->
         </div>
 
-        <!-- 右：実際のフォーム -->
         <div class="card">
             <div class="card-title">ブラインド SQLi（演習用API）</div>
             <div class="card-subtitle">
@@ -366,20 +352,18 @@ rows = User.query.filter(User.name == q).all()
         }
 
         function buildSQL(inputRaw) {
-            // “結果を返さないAPI” の疑似SQL表示（rawは表示用）
+
             return `SELECT * FROM users WHERE name='${inputRaw}';`;
         }
 
-        // 判定の揺れを減らすため、スペース潰し＆小文字化して比較する
         function normalize(s) {
             return (s || "")
                 .trim()
                 .toLowerCase()
-                .replace(/\s+/g, " "); // 連続空白を1つへ
+                .replace(/\s+/g, " "); 
         }
 
         function markDone() {
-            // 達成登録は exercise5 のみに統一
             fetch("/set_achievement/exercise5", { method: "POST" }).catch(() => {});
         }
 
@@ -394,19 +378,11 @@ rows = User.query.filter(User.name == q).all()
 
             const sql = buildSQL(raw);
 
-            // --- 判定パターン（入力例のブレを吸収するよう拡張） ---
             const patterns = {
-                // True/False系（1=1, '1'='1', true などを包含）
                 true_based: /\b(or|and)\b.*\b(1\s*=\s*1|true|'1'\s*=\s*'1'|"1"\s*=\s*"1")\b/,
                 false_based: /\b(or|and)\b.*\b(1\s*=\s*0|false|'1'\s*=\s*'0'|"1"\s*=\s*"0")\b/,
-
-                // Time-based（DB差を許容：sleep/pg_sleep/benchmark 等）
                 time_based: /\b(sleep|pg_sleep|benchmark)\s*\(/,
-
-                // Length-based（UNION）
                 length_based: /\bunion\b\s+\bselect\b/,
-
-                // コメントアウト
                 comment: /(--|#|\/\*)/
             };
 
@@ -421,7 +397,6 @@ rows = User.query.filter(User.name == q).all()
                 `;
             }
 
-            // 優先順位：time_based → length_based → true/false → 通常
             if (patterns.time_based.test(input)) {
                 markDone();
                 render({

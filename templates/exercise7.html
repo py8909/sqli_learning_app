@@ -12,7 +12,6 @@
             padding: 0;
         }
 
-        /* ----- ヘッダー ----- */
         .header {
             background: #2c3e50;
             color: white;
@@ -28,7 +27,6 @@
             color: #bdc3c7;
         }
 
-        /* ----- レイアウト ----- */
         .container {
             max-width: 1100px;
             margin: 25px auto 40px;
@@ -38,7 +36,6 @@
             gap: 20px;
         }
 
-        /* ----- カード ----- */
         .card {
             background: #ffffff;
             border-radius: 10px;
@@ -69,7 +66,6 @@
             margin-right: 6px;
         }
 
-        /* ----- セクション ----- */
         .section-title {
             font-size: 15px;
             font-weight: bold;
@@ -88,7 +84,6 @@
             padding-left: 18px;
         }
 
-        /* ----- コード等 ----- */
         pre {
             background: #f2f4f6;
             padding: 8px 10px;
@@ -104,7 +99,6 @@
             font-size: 12px;
         }
 
-        /* ----- ヒント ----- */
         .hint-box {
             background: #f9fbff;
             border: 1px solid #d6e4ff;
@@ -126,7 +120,6 @@
             display: none;
         }
 
-        /* ----- フォーム ----- */
         .form-group { margin-bottom: 12px; }
         label { font-size: 13px; margin-bottom: 4px; display: block; color: #34495e; }
         input[type="text"] {
@@ -166,7 +159,6 @@
 
 <body>
 
-<!-- ヘッダー -->
 <div class="header">
     SQLi Learning
     <div class="header-sub">演習メニュー &gt; 動的解析デモ</div>
@@ -174,7 +166,6 @@
 
 <div class="container">
 
-    <!-- 左：説明カード -->
     <div class="card">
         <div class="card-title">演習7：動的解析デモ（SQLi自動検出）</div>
         <div class="card-subtitle">
@@ -217,7 +208,6 @@
             </ul>
         </div>
 
-        <!-- ヒント -->
         <div class="hint-box">
             <div class="hint-header" onclick="toggleHint()">
                 <div class="hint-title">ヒントを見る（クリックで展開）</div>
@@ -244,9 +234,6 @@
             </ul>
         </div>
 
-        <!-- =========================================================
-             追加：SQLiを防ぐための方法（演習7向け）
-             ========================================================= -->
         <div class="section-title">5. SQLインジェクションを防ぐための方法（対策）</div>
         <div class="section-body">
             動的解析は<strong>「検出」</strong>であり、対策（防御）は<strong>「作り方」</strong>で決まります。
@@ -282,10 +269,8 @@ rows = User.query.filter(User.name == q).all()
                 <li>“同じ攻撃が繰り返せる”場合は<strong>レート制限・遮断ルール</strong>を追加</li>
             </ul>
         </div>
-        <!-- 追加ここまで -->
     </div>
 
-    <!-- 右：動的解析デモフォーム -->
     <div class="card">
         <div class="card-title">動的解析デモ（ページ内シミュレーション）</div>
         <div class="card-subtitle">
@@ -317,7 +302,6 @@ rows = User.query.filter(User.name == q).all()
         }
     }
 
-    // 入力揺れ吸収（大小文字・空白）
     function normalize(s) {
         return (s || "")
             .trim()
@@ -336,60 +320,45 @@ rows = User.query.filter(User.name == q).all()
             return;
         }
 
-        /* --- ベースライン（正常入力の想定） --- */
         const baseline = {
             status: 200,
             length: 52,
             body: "OK"
         };
 
-        /* --- 疑似攻撃判定ロジック（優先順位あり） --- */
         let detected = false;
         let status = baseline.status;
         let length = baseline.length;
 
-        const notes = [];
-
-        // 判定パターン
         const patterns = {
-            // 破壊的/危険操作・UNIONは「重大」扱い（ステータス変化）
             union_or_drop: /\b(union\s+select|drop\s+table|;\s*drop|;\s*--|;\s*#)/i,
-
-            // Boolean（全件取得/レスポンス肥大想定）
             boolean_true: /\b(or|and)\b.*\b(1\s*=\s*1|true|'1'\s*=\s*'1'|"1"\s*=\s*"1")\b/i,
-
-            // エラー誘発（クォートやコメント等で構文崩し）
             error_hint: /['"]|--|#|\/\*/i
         };
 
-        // 1) 重大：UNION / DROP / ; を含む → 500想定
         if (patterns.union_or_drop.test(raw)) {
             status = 500;
             detected = true;
             notes.push("・ステータスコードが 500 に変化（重大なSQL改変の可能性）");
         }
 
-        // 2) Boolean True → レスポンス長が増える想定（ベースラインとの差分）
         if (patterns.boolean_true.test(raw)) {
             length = 130;
             detected = true;
             notes.push("・レスポンス長が通常より大きい（全件取得/結果肥大の可能性）");
         }
 
-        // 3) エラー露出（ただしboolean_trueと被った場合は補足に留める）
         if (patterns.error_hint.test(raw) && !patterns.boolean_true.test(raw)) {
             detected = true;
             notes.push("・SQL構文エラーの可能性（エラーメッセージ露出の危険）");
         }
 
-        /* --- 結果の生成 --- */
         let html = "<strong>解析結果：</strong><br><br>";
         html += `● ベースライン：status=${baseline.status}, length=${baseline.length}<br>`;
         html += `● 今回：status=${status}, length=${length}<br>`;
         html += "<br>";
 
         if (detected) {
-            // 達成記録（あなたの既存ルーティングに合わせて）
             fetch("/set_achievement/exercise7", { method: "POST" }).catch(() => {});
             fetch("/set_achievement/exercise_dynamic", { method: "POST" }).catch(() => {});
 

@@ -39,7 +39,6 @@
         top: 12px;
         }
 
-    /* ハンバーガーアイコン */
         .hamburger {
             font-size: 26px;
             cursor: pointer;
@@ -47,12 +46,10 @@
             padding: 4px 6px;
         }
 
-        /* hover時に menu を表示（ここが重要） */
         .menu-wrapper:hover .menu {
             display: block;
         }
 
-        /* メニュー内容 */
         .menu {
             display: none;
             position: absolute;
@@ -65,7 +62,6 @@
             width: 180px;
         }
 
-        /* メニューの各リンク */
         .menu a {
             all: unset;
             display: block;
@@ -169,7 +165,6 @@
                 {% endif %}
             {% endwith %}
 
-            <!-- ユーザー情報更新フォーム -->
             <form method="POST" autocomplete="off">
                 <label>ユーザー名：</label>
                 <input type="text" name="username" value="{{ user[1] }}" autocomplete="off">
@@ -180,7 +175,6 @@
                 <button type="submit">更新する</button>
             </form>
 
-            <!-- アカウント削除フォーム -->
             <form method="POST" action="/delete_user">
                 <button type="submit" class="delete-btn">アカウントを削除する</button>
             </form>

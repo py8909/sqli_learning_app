@@ -12,7 +12,6 @@
             padding: 0;
         }
 
-        /* ----- ヘッダー ----- */
         .header {
             background: #2c3e50;
             color: white;
@@ -29,7 +28,6 @@
             margin-top: 4px;
         }
 
-        /* ----- レイアウト ----- */
         .container {
             max-width: 1100px;
             margin: 25px auto 40px;
@@ -39,7 +37,6 @@
             gap: 20px;
         }
 
-        /* ----- カード ----- */
         .card {
             background: #ffffff;
             border-radius: 10px;
@@ -70,7 +67,6 @@
             margin-right: 6px;
         }
 
-        /* セクション */
         .section-title {
             font-size: 15px;
             font-weight: bold;
@@ -104,7 +100,6 @@
             overflow-x: auto;
         }
 
-        /* ヒント */
         .hint-box {
             background: #f9fbff;
             border-radius: 8px;
@@ -144,7 +139,6 @@
             font-size: 12px;
         }
 
-        /* 右側フォームなど */
         .form-group {
             margin-bottom: 12px;
         }
@@ -203,7 +197,6 @@
 
 <body>
 
-    <!-- ヘッダー -->
     <div class="header">
         SQLi Learning
         <div class="header-sub">演習メニュー &gt; 脆弱コードの静的解析</div>
@@ -211,7 +204,6 @@
 
     <div class="container">
 
-        <!-- 左：説明カード -->
         <div class="card">
             <div class="card-title">演習6：脆弱なコードを静的解析で見つけてみよう</div>
             <div class="card-subtitle">
@@ -254,7 +246,6 @@ def search():
                 </ul>
             </div>
 
-            <!-- ヒントボックス -->
             <div class="hint-box">
                 <div class="hint-header" onclick="toggleHint()">
                     <div class="hint-title">ヒントを見る（クリックで展開）</div>
@@ -330,14 +321,12 @@ user = User.query.filter_by(username=username).first()
             </div>
         </div>
 
-        <!-- 右：脆弱コード＋メモ欄 -->
         <div class="card">
             <div class="card-title">脆弱コード（演習用）</div>
             <div class="card-subtitle">
                 次のコードから、<strong>SQLインジェクションの可能性がある行</strong>を探して解析してみましょう。
             </div>
 
-            <!-- ★重要：id="code-block" を付与（JSが参照するため） -->
             <pre id="code-block" class="code-block">
 1 | @app.route("/login", methods=["POST"])
 2 | def login():
@@ -400,7 +389,6 @@ user = User.query.filter_by(username=username).first()
 
             let warnings = [];
 
-            /* --- 危険パターンを検索（超簡易ルール） --- */
             if (text.includes("username = request.form")) {
                 warnings.push("・ユーザ入力（username）が取得されている");
             }
@@ -414,9 +402,7 @@ user = User.query.filter_by(username=username).first()
                 warnings.push("・危険なクエリが直接実行されている");
             }
 
-            /* --- 結果を表示 --- */
             if (warnings.length > 0) {
-                // 達成登録は exercise6 のみに統一（余計なキー混入を防ぐ）
                 fetch("/set_achievement/exercise6", { method: "POST" }).catch(() => {});
 
                 resultBox.innerHTML =
@@ -431,14 +417,12 @@ user = User.query.filter_by(username=username).first()
             }
         }
 
-        /* ====== 危険行のハイライト（1回だけ実行） ====== */
         function highlightDangerousLines() {
             if (highlighted) return;
 
             const pre = document.getElementById("code-block");
             if (!pre) return;
 
-            // 行頭一致（mフラグ）で確実に該当行をハイライト
             let html = pre.textContent
                 .replace(/^6 \|(.+)$/m, `<span style="background:#ffe5e5;">6 |$1</span>`)
                 .replace(/^7 \|(.+)$/m, `<span style="background:#ffe5e5;">7 |$1</span>`)

@@ -12,7 +12,6 @@
             padding: 0;
         }
 
-        /* ----- ヘッダー ----- */
         .header {
             background: #2c3e50;
             color: white;
@@ -29,7 +28,6 @@
             margin-top: 4px;
         }
 
-        /* ----- レイアウト ----- */
         .container {
             max-width: 1100px;
             margin: 25px auto 40px;
@@ -43,7 +41,6 @@
             .container { grid-template-columns: minmax(0, 1fr); }
         }
 
-        /* ----- カード ----- */
         .card {
             background: #ffffff;
             border-radius: 10px;
@@ -74,7 +71,6 @@
             margin-right: 6px;
         }
 
-        /* セクション */
         .section-title {
             font-size: 15px;
             font-weight: bold;
@@ -96,7 +92,6 @@
 
         .section-body li { margin-bottom: 2px; }
 
-        /* ヒント */
         .hint-box {
             background: #f9fbff;
             border-radius: 8px;
@@ -142,7 +137,6 @@
             overflow-x:auto;
         }
 
-        /* 右側フォームなど */
         .form-group { margin-bottom: 12px; }
 
         label {
@@ -216,7 +210,6 @@
 
 <body>
 
-    <!-- ヘッダー -->
     <div class="header">
         SQLi Learning
         <div class="header-sub">演習メニュー &gt; 安全なSQL（防御版）</div>
@@ -224,7 +217,6 @@
 
     <div class="container">
 
-        <!-- 左：説明カード -->
         <div class="card">
             <div class="card-title">演習8：安全なSQL（防御版）を体験しよう</div>
             <div class="card-subtitle">
@@ -270,7 +262,6 @@ cursor.execute(query, (username, password))
                 <code>' OR '1'='1</code> などが入ってもSQLとして解釈されません。
             </div>
 
-            <!-- ヒントボックス -->
             <div class="hint-box">
                 <div class="hint-header" onclick="toggleHint()">
                     <div class="hint-title">ヒントを見る（クリックで展開）</div>
@@ -298,7 +289,6 @@ cursor.execute(query, (username, password))
                 </ul>
             </div>
 
-            <!-- 追加：SQLiを防ぐ方法（実装・運用） -->
             <div class="section-title">4. SQLインジェクションを防ぐための方法（まとめ）</div>
             <div class="section-body">
                 <ul>
@@ -311,7 +301,6 @@ cursor.execute(query, (username, password))
             </div>
         </div>
 
-        <!-- 右：防御体験フォーム（ページ内完結） -->
         <div class="card">
             <div class="card-title">安全なSQL 体験フォーム</div>
             <div class="card-subtitle">
@@ -358,11 +347,9 @@ cursor.execute(query, (username, password))
         }
 
         function safeFetch(url) {
-            // ルートが未実装でも画面を壊さない
             return fetch(url, { method: "POST" }).catch(() => {});
         }
 
-        /* 防御挙動シミュレーション（ページ内完結） */
         function simulateSafeSQL(event) {
             event.preventDefault();
 
@@ -380,19 +367,15 @@ cursor.execute(query, (username, password))
             const vulnerableSQL =
                 "SELECT * FROM users WHERE username = '" + user +
                 "' AND password = '" + pass + "'";
-
-            // DBごとにプレースホルダは異なるが、「概念」を学ぶ目的で %s 表記に統一
             const safeSQL = "SELECT * FROM users WHERE username = %s AND password = %s";
             const params  = `params = (${JSON.stringify(user)}, ${JSON.stringify(pass)})`;
-
-            // よくあるSQLi系パターン（判定を少し強化）
             const patterns = {
                 boolean_true: /\bor\b\s+(1\s*=\s*1|true)\b/,
                 quoted_true: /'1'\s*=\s*'1'|"1"\s*=\s*"1"/,
                 comment: /--|#|\/\*/,
                 union: /\bunion\b\s+\bselect\b/,
                 drop: /\bdrop\b\s+\btable\b/,
-                quote_only_break: /(^'?$)|(^".*$)/ // 参考（単純化）
+                quote_only_break: /(^'?$)|(^".*$)/ 
             };
 
             const attackLike =
@@ -406,8 +389,6 @@ cursor.execute(query, (username, password))
                 patterns.comment.test(p) ||
                 patterns.union.test(p) ||
                 patterns.drop.test(p);
-
-            // 疑似的な「脆弱実装なら起きうる現象」を説明するための分類
             let vulnEffect = "通常の条件評価";
             if (patterns.union.test(u) || patterns.union.test(p)) vulnEffect = "UNION により別の行/列を結合される可能性";
             else if (patterns.drop.test(u) || patterns.drop.test(p)) vulnEffect = "破壊的操作（DROP等）が混入する可能性";

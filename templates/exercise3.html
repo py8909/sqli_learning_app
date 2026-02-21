@@ -12,7 +12,6 @@
             padding: 0;
         }
 
-        /* ----- ヘッダー ----- */
         .header {
             background: #2c3e50;
             color: white;
@@ -29,7 +28,6 @@
             margin-top: 4px;
         }
 
-        /* ----- レイアウト ----- */
         .container {
             max-width: 1100px;
             margin: 25px auto 40px;
@@ -45,7 +43,6 @@
             }
         }
 
-        /* ----- カード ----- */
         .card {
             background: #ffffff;
             border-radius: 10px;
@@ -103,7 +100,6 @@
             overflow-x: auto;
         }
 
-        /* ----- ヒント ----- */
         .hint-box {
             background: #f9fbff;
             border-radius: 8px;
@@ -134,7 +130,6 @@
             margin-top: 8px;
         }
 
-        /* ----- フォーム ----- */
         .form-group { margin-bottom: 12px; }
 
         label {
@@ -179,7 +174,6 @@
 
 <body>
 
-    <!-- ヘッダー -->
     <div class="header">
         SQLi Learning
         <div class="header-sub">演習メニュー &gt; URLパラメータ SQLインジェクション体験</div>
@@ -187,7 +181,6 @@
 
     <div class="container">
 
-        <!-- 左：説明カード -->
         <div class="card">
             <div class="card-title">演習3：URLパラメータでSQLインジェクションを体験しよう</div>
             <div class="card-subtitle">
@@ -298,7 +291,6 @@ cursor.execute(query)
 
         </div>
 
-        <!-- 右：URLパラメータ入力フォーム -->
         <div class="card">
             <div class="card-title">URLパラメータ入力フォーム（演習用）</div>
             <div class="card-subtitle">
@@ -320,7 +312,7 @@ cursor.execute(query)
     </div>
 
 <script>
-/* --- ヒント切り替え --- */
+
 function toggleHint() {
     const content = document.getElementById("hint-content");
     const symbol = document.getElementById("hint-toggle-symbol");
@@ -334,9 +326,6 @@ function toggleHint() {
     }
 }
 
-/* -----------------------------------
-   疑似 SQLi 判定：URLパラメータ版
------------------------------------ */
 function fakeUrlParam(event) {
     event.preventDefault();
 
