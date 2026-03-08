@@ -1,16 +1,15 @@
 # SQL Injection Learning App
 
-Web開発者および情報系学生が **SQL Injection（SQLi）脆弱性の仕組みと対策**を実践的に学習するための教育用Webアプリケーションです。
+Web開発者の初学者が **SQL Injection（SQLi）脆弱性の仕組みと対策**を実践的に学習するための教育用Webアプリケーションです。
 
-本システムでは、実際のWebアプリケーションを模した演習環境を提供し、SQLインジェクション攻撃を体験しながら脆弱性の理解と対策方法を学習できます。
-
+本システムでは、本システムは，SQL インジェクションの攻撃原理と対策方法を，実際のWebアプリケーションの挙動を通して段階的に学習できることを目的としている．
 ---
 
 # Overview
 
 SQL Injectionは、現在でもWebアプリケーションにおける重大な脆弱性の一つとして知られています。   OWASP Top 10 においても、インジェクション攻撃は継続的に重要なセキュリティリスクとして報告されています。
 
-しかしながら、開発者がSQLインジェクションを **実際に攻撃・検証しながら学習できる教育環境**は多くありません。
+Webアプリケーション開発者および開発初学者を対象として，SQLインジェクション攻撃の成立過程と対策原理を実践的に理解できる学習支援である.
 
 本プロジェクトでは以下を目的として学習環境を開発しました。
 
@@ -25,26 +24,28 @@ SQL Injectionは、現在でもWebアプリケーションにおける重大な�
 
 本アプリケーションでは以下の学習機能を提供します。
 
-## SQL Injection Exercises
+## イントロダクション
 
-- Login SQL Injection
-- Search SQL Injection
-- URL Parameter Injection
-- Error-based SQL Injection
-- Blind SQL Injection
+- SQLインジェクションとは？
+- セキュリティの重要性
+- このアプリで学べること
+- 学習上の注意
 
-## Learning Support
+##  演習問題
 
-- Hint system
-- Step-by-step exercises
-- Vulnerability explanation
-- Secure coding examples
+- ログインSQLi体験
+- 検索フォームSQLi
+- URLパラメータSQLi
+- エラーベースSQLi
+- ブラインドSQLi
+- 脆弱コードの静的解析
+- 動的解析デモ
+- 安全なSQL（防御版）
 
-## Management Features
+## 確認問題
 
-- User authentication
-- Learning progress management
-- Admin dashboard (optional)
+- イントロダクションの理解度テスト
+- 演習の確認テスト
 
 ---
 
@@ -55,7 +56,7 @@ Client (Browser)
 ↓
 
 Frontend  
-HTML / CSS / Bootstrap
+HTML / CSS 
 
 ↓
 
@@ -86,7 +87,6 @@ SQLite / PostgreSQL
 
 - HTML
 - CSS
-- Bootstrap
 
 ## Development Tools
 
@@ -98,25 +98,21 @@ SQLite / PostgreSQL
 
 # Screenshots
 
-### Login Exercise
+### home
 
-![login](docs/login.png)
+![home](home.png)
 
-### SQL Injection Exercise
+### introduction SQLi
 
-![exercise](docs/exercise.png)
+![introduction_SQLi](docs/introduction_sqli.png)
 
-### Hint System
+### Exercise 1
 
-![hint](docs/hint.png)
+![exercise1](docs/exercise1.png)
+
+### introduction quiz
+
+![introduction_quiz](docs/intro_quiz.png)
 
 ※画像は `docs/` フォルダに配置してください
 
----
-
-# Installation
-
-## 1 Clone repository
-
-```bash
-git clone https://github.com/your-username/sqli-learning-app.git
