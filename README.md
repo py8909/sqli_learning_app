@@ -1,4 +1,3 @@
-Japanese version is available here: [README_jp.md](README_jp.md)
 
 # SQL Injection Learning App
 
