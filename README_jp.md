@@ -100,7 +100,7 @@ SQLite / PostgreSQL
 
 ### home
 
-![home](home.png)
+![home](docs/home.png)
 
 ### introduction SQLi
 
