@@ -3,6 +3,7 @@
 Web開発者の初学者が **SQL Injection（SQLi）脆弱性の仕組みと対策**を実践的に学習するための教育用Webアプリケーションです。
 
 本システムでは、本システムは，SQL インジェクションの攻撃原理と対策方法を，実際のWebアプリケーションの挙動を通して段階的に学習できることを目的としている．
+
 ---
 
 # Overview
@@ -114,5 +115,5 @@ SQLite / PostgreSQL
 
 ![introduction_quiz](docs/intro_quiz.png)
 
-※画像は `docs/` フォルダに配置してください
+
 
