@@ -104,7 +104,7 @@ SQLite / PostgreSQL
 
 ### introduction SQLi
 
-![introduction_SQLi](docs/introduction_sqli.png)
+![introduction_SQLi](docs/intro_sqli.png)
 
 ### Exercise 1
 
